@@ -9,7 +9,7 @@
 
 | Tipo | Prossimo |
 |---|---|
-| Domanda D- | D-0004 |
+| Domanda D- | D-0005 |
 | Sviluppo S- | S-0001 |
 | Contributo agente A- | A-0006 |
 | Fonte B- | B-007 |
@@ -17,7 +17,7 @@
 
 ## Prossimo passo
 
-Fase 0: risposta a D-0003 (tono) e D-0004 (domanda centrale del primo libro), quindi logline e sinossi.
+Fase 0: risposta a D-0004 (tono + domanda centrale), poi costruzione dell'idea completa (logline, sinossi, scheda della collana) (tono) e D-0004 (domanda centrale del primo libro), quindi logline e sinossi.
 
 ## Questioni aperte
 

@@ -68,4 +68,27 @@ Cronologia completa di domande, risposte, analisi e sviluppi. **Solo in aggiunta
 - F) Decidi tu
 
 **Risposta dell'autore (testuale):**
+> Costruiamo l' idea completa...
+
+**Origine della scelta:** nessuna opzione scelta; l'autore chiede di procedere alla costruzione dell'idea completa
+
+**Analisi:** la richiesta corrisponde allo sviluppo proposto in D-0001 (logline e sinossi), ma mancano ancora tono (D-0003) e domanda centrale (D-0004). Per non decidere al posto dell'autore senza delega, le due domande restanti vengono poste insieme in un'unica domanda (D-0004), con la possibilità di delegarle entrambe.
+
+**Decisioni registrate:** nessuna
+
+**Sviluppo del testo:** richiesto («costruiamo l'idea completa») · in attesa di D-0004
+
+### D-0004 · Fase 0 – Idea · 2026-10-11 10:52
+
+**Domanda:** (doppia) 1. Tono della voce di Davide (opzioni di D-0003, A–D). 2. Domanda drammatica centrale del primo libro.
+
+**Opzioni proposte (generate dall'agente) per la domanda 2:**
+- A) Davide scoprirà chi era lo sconosciuto del pub prima che il coro scopra lui?
+- B) Davide riuscirà a capire e perdonare la ragazza, sapendo che ha scelto?
+- C) Davide accetterà di entrare nell'Ordine, pur sapendo che cosa vuole davvero?
+- D) Quella notte la ragazza è rimasta incinta: Davide riuscirà a proteggere un bambino che non è suo e che nascerà sensibile al coro?
+- E) Rispondo a modo mio
+- F) Decidi tu
+
+**Risposta dell'autore (testuale):**
 > (in attesa)
