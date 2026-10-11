@@ -1,0 +1,7 @@
+body { font-family: serif; line-height: 1.5; }
+p { margin: 0; text-indent: 1.2em; text-align: justify; }
+h1 + p, h2 + p, hr + p, .dedica p { text-indent: 0; }
+h1 { text-align: center; font-weight: normal; margin: 2em 0 1.5em; }
+hr { border: 0; text-align: center; margin: 1em 0; }
+hr::after { content: "* * *"; }
+.dedica { text-align: right; font-style: italic; margin-top: 30%; }

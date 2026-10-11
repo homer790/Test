@@ -1,0 +1,26 @@
+/* PDF leggibile su cellulare: pagina stretta, corpo grande, margini minimi. */
+@page { size: 90mm 160mm; margin: 7mm 6mm 9mm 6mm;
+  @bottom-center { content: counter(page); font-size: 8pt; color: #777; } }
+html { font-size: 11.5pt; }
+body { font-family: "Georgia", "Libre Baskerville", "DejaVu Serif", serif; line-height: 1.5;
+  color: #1a1a1a; margin: 0; max-width: none; padding: 0; hyphens: auto; text-align: justify; }
+p { margin: 0; text-indent: 1.2em; orphans: 2; widows: 2; }
+h1 + p, h2 + p, hr + p, .dedica p, .gw-etichetta + p { text-indent: 0; }
+h1 { font-size: 1.45em; text-align: center; margin: 1.2em 0 1em; break-before: page; font-weight: normal; }
+h2 { font-size: 1.15em; margin: 1.2em 0 .6em; }
+hr { border: 0; text-align: center; margin: 1em 0; }
+hr::after { content: "* * *"; letter-spacing: .4em; color: #555; }
+header#title-block-header { break-after: page; text-align: center; padding-top: 30%; }
+header .title { font-size: 1.8em; break-before: avoid; }
+header .author { font-size: 1.1em; font-style: italic; }
+nav#TOC { break-after: page; }
+nav#TOC ul { list-style: none; padding: 0; }
+nav#TOC a { color: inherit; text-decoration: none; }
+.dedica { break-after: page; text-align: right; font-style: italic; padding-top: 35%; }
+blockquote { margin: .8em 1em; font-style: italic; }
+/* Versione annotata */
+.gw { border-left: 3px solid; padding-left: .5em; margin: .6em 0; }
+.gw-S { border-color: #3b82f6; background: #eff6ff; }
+.gw-A { border-color: #f59e0b; background: #fffbeb; }
+.gw-etichetta { font: bold 7pt sans-serif; color: #555; text-indent: 0; }
+.gw-fonte { font-size: 7pt; color: #2563eb; }
