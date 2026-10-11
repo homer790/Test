@@ -9,18 +9,17 @@
 
 | Tipo | Prossimo |
 |---|---|
-| Domanda D- | D-0003 |
+| Domanda D- | D-0004 |
 | Sviluppo S- | S-0001 |
-| Contributo agente A- | A-0005 |
+| Contributo agente A- | A-0006 |
 | Fonte B- | B-007 |
-| Canone C- | C-011 |
+| Canone C- | C-014 |
 
 ## Prossimo passo
 
-Fase 0: risposta a D-0002 (varianti da integrare), poi D-0003 (tono) e D-0004 (domanda centrale del primo libro), quindi logline e sinossi.
+Fase 0: risposta a D-0003 (tono) e D-0004 (domanda centrale del primo libro), quindi logline e sinossi.
 
 ## Questioni aperte
 
-- Ruolo della ragazza: posseduta o consapevole?
 - Livello di esplicitezza dei contenuti sessuali
 - Regole del mondo: entità, possessione, coro

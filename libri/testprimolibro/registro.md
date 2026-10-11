@@ -41,4 +41,31 @@ Cronologia completa di domande, risposte, analisi e sviluppi. **Solo in aggiunta
 - F) Decidi tu
 
 **Risposta dell'autore (testuale):**
+> F
+
+**Origine della scelta:** delegata all'agente → A-0005
+
+**Analisi:**
+- Scelta dell'agente: B (Il dubbio) + D (L'Ordine non è innocente); C (Il sangue) tenuta in riserva per un volume successivo; A (La deposizione) scartata.
+- Congruità: B rafforza il peso emotivo dell'incipit; D fornisce il motore per più volumi.
+- Coerenza: compatibile con C-003 (il tradimento resta reale), C-008 (l'Ordine segue le entità da secoli) e C-010 (le «voci» diventano la risorsa contesa). Nessun conflitto.
+- Originalità: B e D allontanano l'idea dallo schema «possessione = colpa del demone» e «ordine segreto = buoni».
+
+**Decisioni registrate:** canone.md › C-011, C-012, C-013; idea.md › Varianti proposte (esito); contributi-agente.md › A-0001…A-0005
+
+**Sviluppo del testo:** rientra nello sviluppo proposto in D-0001 (logline e sinossi) · mancano D-0003, D-0004
+
+### D-0003 · Fase 0 – Idea · 2026-10-11 10:40
+
+**Domanda:** Che tono deve avere la voce di Davide nel primo libro?
+
+**Opzioni proposte (generate dall'agente):**
+- A) Noir disilluso: frasi asciutte, ironia amara, un uomo che racconta da sopravvissuto
+- B) Horror intimo: claustrofobico, sensoriale, la paura nasce nel corpo e nelle relazioni vicine
+- C) Thriller cospirativo: ritmo serrato, capitoli brevi, indizi e rivelazioni a catena
+- D) Malinconia quotidiana: il soprannaturale filtrato dalla vita normale (lavoro, amici, bar), tono più lirico che spaventoso
+- E) Rispondo a modo mio
+- F) Decidi tu
+
+**Risposta dell'autore (testuale):**
 > (in attesa)

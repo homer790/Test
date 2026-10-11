@@ -46,6 +46,8 @@ Ogni variante cambia un elemento chiave. Sono contributi dell'agente in stato «
    - *Guadagna:* una guerra a tre, ambiguità morale, spazio per molti volumi.
    - *Perde:* la semplicità buoni/cattivi.
 
+**Esito (D-0002, delegato → A-0005):** integrate le varianti 2 e 4; variante 3 in riserva; variante 1 scartata.
+
 ## Verifica di originalità
 
 > Verifica indicativa, basata su ricerche web del 2026-10-11: non è una garanzia di originalità assoluta.

@@ -14,3 +14,6 @@ Fatti stabiliti con cui ogni nuova risposta viene confrontata.
 | C-008 | Esiste un ordine segreto che da secoli segue le tracce delle entità | D-0001 | valido |
 | C-009 | Esistono umani che non sentono il coro e che, come Davide, hanno visioni del coro o delle entità | D-0001 | valido |
 | C-010 | Alcuni umani, come Davide, possono influire con la propria voce sul coro, anche se in minima parte | D-0001 | valido |
+| C-011 | Al pub l'entità era nello sconosciuto: la ragazza ha scelto davvero di tradire Davide | A-0005 (delega D-0002) | valido |
+| C-012 | Tema portante della collana: il libero arbitrio (quanto delle azioni umane è volontà e quanto è coro) | A-0005 (delega D-0002) | valido |
+| C-013 | L'Ordine segreto non vuole distruggere il coro ma impadronirsene; recluta le «voci» come Davide | A-0005 (delega D-0002) | valido |
