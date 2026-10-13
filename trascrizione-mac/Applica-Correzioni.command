@@ -3,8 +3,9 @@
 #
 # 1. Chiede il file di controllo corretto a mano (NOME_controllo.txt).
 # 2. Crea NOME_trascrizione_corretta.txt con le tue correzioni.
-# 3. Impara le correzioni: le aggiunge al dizionario personale usato dalle trascrizioni
-#    future e salva i ritagli audio con la parola giusta come esempi.
+# 3. Impara correzioni e conferme: le aggiunge al dizionario personale usato dalle
+#    trascrizioni future (le parole verificate non verranno più segnate) e salva i
+#    ritagli audio corretti come esempi.
 # 4. Avvisa con un popup e apre la trascrizione corretta.
 #
 # Si può rilanciare quante volte si vuole: riparte sempre dalla trascrizione originale.
@@ -88,13 +89,13 @@ for numero, voce in dati["voci"].items():
         segnate.add(i)
         continue
     originale = parole[i]["testo"]
+    if valore:
+        imparate[originale] = valore  # «x → x» = parola confermata, da non segnare più
     if valore == originale:
         confermate += 1
         continue
     corrette += 1
     parole[i]["testo"], parole[i]["raw"] = valore, (" " + valore if valore else "")
-    if valore and norm(valore) != norm(originale):
-        imparate[originale] = valore
     # Esempio per il futuro: ritaglio audio + testo giusto di quel tratto
     clip = os.path.join(cartella, dati["cartella_clip"], voce["clip"])
     if os.path.exists(clip):
@@ -131,7 +132,8 @@ voci_diz.update(imparate)
 os.makedirs(os.path.dirname(DIZIONARIO), exist_ok=True)
 with open(DIZIONARIO, "w", encoding="utf-8") as f:
     f.write("# Dizionario personale di Trascrivi-Audio: «parola sentita male → parola giusta».\n")
-    f.write("# Si può modificare a mano. Le righe che iniziano con # sono ignorate.\n")
+    f.write("# «parola → parola» = parola confermata: nelle prossime trascrizioni non verrà più segnata.\n")
+    f.write("# Si può modificare a mano (anche cancellare righe). Le righe che iniziano con # sono ignorate.\n")
     for s, g in voci_diz.items():
         f.write(f"{s} → {g}\n")
 
@@ -145,7 +147,7 @@ MESSAGGIO="Correzioni applicate.
 Parole corrette: $CORRETTE
 Parole confermate: $CONFERMATE
 Ancora da verificare (con asterisco): $RIMASTE
-Nuove parole imparate nel dizionario: $NUOVE"
+Nuove voci nel dizionario (correzioni e conferme): $NUOVE"
 [ -n "$MANCANTI" ] && MESSAGGIO="$MESSAGGIO
 
 Attenzione: non trovo le righe PAROLA $MANCANTI (cancellate per sbaglio?). Restano da verificare."

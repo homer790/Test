@@ -54,10 +54,17 @@ Se i file esistono già, ai nuovi viene aggiunta la data e l'ora: niente viene s
 Scegli il file di controllo corretto. Il programma:
 
 - crea `NOME_trascrizione_corretta.txt`. Le parole non ancora verificate restano tra `*asterischi*`;
-- aggiunge al **dizionario personale** ogni correzione (es. `anamesi → anamnesi`).
+- aggiunge al **dizionario personale** ogni correzione (es. `anamesi → anamnesi`) e ogni
+  conferma (es. `anamnesi → anamnesi`, quando togli solo gli asterischi).
   Nelle trascrizioni successive:
   - quelle parole vengono suggerite a Whisper;
-  - se Whisper sente di nuovo la forma sbagliata, il programma la sostituisce e lo segnala tra le «risolte automaticamente»;
+  - se Whisper sente di nuovo la forma sbagliata, il programma la sostituisce;
+  - le parole che hai già verificato (confermate, o la forma giusta di una correzione)
+    **non vengono più segnate**.
+
+  Entrambi i casi compaiono tra le «risolte automaticamente», così puoi vederli.
+  Attenzione: una parola confermata non verrà più segnata in nessun contesto. Se un giorno
+  ti serve di nuovo il controllo su quella parola, cancella la sua riga dal dizionario;
 - salva ogni ritaglio corretto, insieme al testo giusto, nella cartella degli esempi.
 
 Puoi rilanciarlo quante volte vuoi, dopo aver corretto altre voci: riparte sempre dalla trascrizione originale.
@@ -107,7 +114,7 @@ SOGLIA=0.7 MODELLO_C=large-v3-turbo ./Trascrivi-Audio.command
 In `~/Library/Application Support/TrascriviAudio`:
 
 - `venv/` e `modelli/`: il programma e i modelli;
-- `dizionario.txt`: il dizionario personale, modificabile a mano;
+- `dizionario.txt`: il dizionario personale (correzioni e parole confermate), modificabile a mano;
 - `esempi/`: i ritagli corretti, con il testo giusto.
 
 Per disinstallare, cancella quella cartella.

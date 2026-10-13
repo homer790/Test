@@ -178,6 +178,8 @@ if DIZIONARIO and os.path.exists(DIZIONARIO):
             sbagliata, giusta = (x.strip() for x in riga.split("→", 1))
             if norm(sbagliata) and giusta:
                 correzioni_note[norm(sbagliata)] = giusta
+# Parole già verificate da te (confermate o forma giusta di una correzione): non vanno più segnate
+verificate = {norm(g) for g in correzioni_note.values()}
 # Le parole giuste vengono suggerite a Whisper (le più recenti per ultime, ne teniamo un numero limitato)
 suggerimenti = " ".join(list(dict.fromkeys(correzioni_note.values()))[-40:]) or None
 
@@ -278,11 +280,13 @@ parole_b = [(p.start, p.end, p.testo) for p in b]
 for p in a:
     p.medio = nello_stesso_punto(parole_b, p)
 
-# Errori già corretti a mano in passato (dizionario personale)
+# Dizionario personale: errori già corretti a mano e parole già verificate
 for p in a:
     giusta = correzioni_note.get(norm(p.testo))
     if giusta and norm(giusta) != norm(p.testo):
         applica(p, giusta, "dal tuo dizionario")
+    elif norm(p.testo) in verificate and (p.prob < SOGLIA or p.alternativa is not None):
+        applica(p, p.testo, "già verificata da te")
 
 dubbie_iniziali = sum(dubbia(p) for p in a)
 contesto = lambda n: " ".join(p.testo for p in a if p.seg == n - 1)  # la frase precedente aiuta il modello
