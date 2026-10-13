@@ -1,5 +1,13 @@
 # Trascrivi Audio (Mac, offline)
 
+> **Per installarlo:** scarica [`dist/Installa-TrascriviAudio.zip`](dist/Installa-TrascriviAudio.zip)
+> e segui la [Guida rapida](GUIDA-RAPIDA.md). L'installatore chiede la cartella, installa Whisper
+> e mette sulla Scrivania i collegamenti «Trascrivi Audio» e «Applica Correzioni».
+> Per aggiornare, rilancialo scegliendo la stessa cartella.
+>
+> Per rigenerare lo ZIP dopo aver modificato i file: `./crea-installatore.sh`.
+> Per provarlo senza Mac: `test/prova-installatore.sh`.
+
 Due comandi da aprire con doppio clic:
 
 | Comando | Cosa fa |

@@ -113,6 +113,12 @@ In alternativa installa Python da python.org."
   echo "Whisper installato."
 fi
 
+# Modalità usata dall'installatore: prepara Whisper e basta, senza trascrivere
+if [ "${1:-}" = "--installa" ]; then
+  echo "Whisper è pronto."
+  exit 0
+fi
+
 # --- 2. File audio e cartella di destinazione
 
 AUDIO=$(osascript -e 'POSIX path of (choose file with prompt "Scegli il file audio (o video) da trascrivere:")' 2>/dev/null) \
