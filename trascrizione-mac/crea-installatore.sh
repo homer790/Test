@@ -54,7 +54,8 @@ INSTALLATORE="$DIST/Installa-TrascriviAudio.command"
 sed "s/@VERSIONE@/$VERSIONE/" > "$INSTALLATORE" <<'EOF'
 #!/bin/bash
 # Installatore autoestraente di Trascrivi Audio (versione @VERSIONE@).
-# Doppio clic: chiede la cartella, estrae i file, installa Whisper e crea i collegamenti
+# Doppio clic: chiede la cartella, estrae i file, installa Python e Whisper se mancano
+# (chiedendo conferma) e crea i collegamenti
 # sulla Scrivania. Rilanciarlo scegliendo la stessa cartella aggiorna il programma
 # senza toccare dizionario, esempi e trascrizioni.
 
@@ -83,8 +84,9 @@ errore() { avviso "$1" stop; echo "ERRORE: $1"; exit 1; }
 domanda "Benvenuto nell'installazione di Trascrivi Audio (versione @VERSIONE@).
 
 Ora ti chiederò in quale cartella installarlo: verrà creata la cartella «$NOME_CARTELLA».
-Poi verrà installato Whisper e sulla Scrivania troverai i collegamenti
-«Trascrivi Audio» e «Applica Correzioni».
+Poi controllerò se sul Mac ci sono Python e Whisper: se mancano, ti chiederò
+se installarli (puoi sempre annullare).
+Sulla Scrivania troverai i collegamenti «Trascrivi Audio» e «Applica Correzioni».
 
 Se il programma è già installato, scegli la stessa cartella per aggiornarlo:
 dizionario, esempi e trascrizioni non vengono toccati." "Continua" || exit 0
@@ -110,13 +112,13 @@ chmod +x "$DEST/"*.command
 command -v xattr >/dev/null && xattr -dr com.apple.quarantine "$DEST" 2>/dev/null
 echo "File estratti in: $DEST"
 
-# --- Installazione di Whisper (chiede conferma)
-"$DEST/Trascrivi-Audio.command" --installa || errore "Installazione di Whisper non riuscita. Guarda la finestra del Terminale."
+# --- Controllo e installazione di Python e Whisper (solo se mancano, chiedendo conferma)
+"$DEST/Trascrivi-Audio.command" --installa || errore "Installazione di Python o Whisper non riuscita. Guarda la finestra del Terminale."
 VENV="$HOME/Library/Application Support/TrascriviAudio/venv"
 if "$VENV/bin/python" -c 'import faster_whisper' 2>/dev/null; then
-  STATO_WHISPER="Whisper è installato."
+  STATO_WHISPER="Python e Whisper sono installati."
 else
-  STATO_WHISPER="Whisper non è stato installato: verrà proposto al primo avvio di «Trascrivi Audio»."
+  STATO_WHISPER="Python e/o Whisper non sono stati installati: verranno proposti al primo avvio di «Trascrivi Audio»."
 fi
 
 # --- Collegamenti sulla Scrivania

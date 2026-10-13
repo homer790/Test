@@ -21,7 +21,7 @@ L'audio non lascia mai il computer. Da internet si scaricano solo il programma
 
 ## 1. Trascrivi-Audio
 
-1. Se Whisper manca, chiede il permesso e lo installa.
+1. Se Python o Whisper mancano, chiede il permesso (popup con Annulla) e li installa.
 2. Chiede il file audio o video e la cartella dove salvare i risultati.
 3. **1° e 2° ascolto:** trascrive l'intero audio con **large-v3** e con **medium**.
    Una parola è *dubbia* se large-v3 non ne è sicuro, oppure se i due modelli hanno sentito cose diverse.
@@ -91,8 +91,9 @@ centinaia di esempi e un computer potente.
    Lo stesso vale per `Applica-Correzioni.command`.
 3. Se dice che non hai i permessi, apri il Terminale e scrivi `chmod +x `, poi trascina il
    file nella finestra e premi Invio.
-4. Se manca Python, si apre la finestra di Apple per installare gli "Strumenti da riga di
-   comando". Installali e riapri il file.
+4. Python e Whisper vengono installati solo se mancano, e solo dopo averlo chiesto con un
+   popup (con **Annulla**). Python viene scaricato da python.org (installatore ufficiale,
+   firma verificata) e richiede la password del Mac. Serve macOS 11 o successivo.
 
 ## Tempi
 

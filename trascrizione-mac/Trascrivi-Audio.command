@@ -1,7 +1,8 @@
 #!/bin/bash
 # Trascrivi-Audio.command — da aprire con doppio clic nel Finder (macOS).
 #
-# 1. Se manca, chiede il permesso e installa Whisper (faster-whisper) in locale.
+# 1. Controlla Python e Whisper: se mancano, chiede il permesso (popup con Annulla)
+#    e li installa (Python da python.org, Whisper in locale).
 # 2. Chiede il file audio e la cartella dove salvare i risultati.
 # 3. Trascrive due volte (large-v3 e medium), confronta e segna le parole dubbie,
 #    poi riascolta solo le frasi dubbie: se il riascolto di large coincide con medium
@@ -60,11 +61,15 @@ Dettagli nella finestra del Terminale." stop
   exit 1
 }
 
-# --- 1. Python e Whisper
+# --- 1. Python e Whisper: si installano solo se mancano, e solo dopo aver chiesto
+
+PYTHON_VERSIONE="${PYTHON_VERSIONE:-3.13.16}"   # versione installata da python.org se Python manca
+PYTHON_PKG_URL="https://www.python.org/ftp/python/$PYTHON_VERSIONE/python-$PYTHON_VERSIONE-macos11.pkg"
 
 trova_python() {
-  for p in /opt/homebrew/bin/python3 /usr/local/bin/python3 \
-           /Library/Frameworks/Python.framework/Versions/Current/bin/python3 /usr/bin/python3; do
+  # PYTHON_CANDIDATI permette ai test di simulare un Mac senza Python
+  for p in ${PYTHON_CANDIDATI-/opt/homebrew/bin/python3 /usr/local/bin/python3 \
+           /Library/Frameworks/Python.framework/Versions/Current/bin/python3 /usr/bin/python3}; do
     # /usr/bin/python3 esiste anche senza Command Line Tools ma non funziona: controlliamo prima.
     if [ "$p" = /usr/bin/python3 ] && [ "$(uname)" = Darwin ] && ! xcode-select -p >/dev/null 2>&1; then
       continue
@@ -81,7 +86,49 @@ whisper_installato() {
   [ -x "$VENV/bin/python" ] && "$VENV/bin/python" -c 'import faster_whisper' 2>/dev/null
 }
 
-if ! whisper_installato; then
+installa_python() {
+  domanda "Per funzionare, Trascrivi Audio ha bisogno di Python, che sul tuo Mac non c'è.
+
+• Verrà scaricato l'installatore ufficiale da python.org (Python $PYTHON_VERSIONE, circa 70 MB)
+• macOS ti chiederà la password del Mac per installarlo
+
+Vuoi installare Python ora?" "Installa Python" || { echo "Installazione di Python annullata."; exit 0; }
+
+  [ "$(uname)" = Darwin ] || errore "L'installazione automatica di Python funziona solo su macOS."
+  MACOS=$(sw_vers -productVersion 2>/dev/null)
+  [ "${MACOS%%.*}" -ge 11 ] 2>/dev/null || errore "Serve macOS 11 (Big Sur) o successivo; questo Mac ha macOS $MACOS.
+Installa Python a mano da python.org e riapri questo file."
+
+  PKG="$(mktemp -d)/python.pkg"
+  echo "Scarico Python $PYTHON_VERSIONE da python.org ..."
+  curl -fL --progress-bar -o "$PKG" "$PYTHON_PKG_URL" || errore "Download di Python non riuscito (controlla la connessione)."
+  # Il pacchetto deve essere firmato dalla Python Software Foundation
+  pkgutil --check-signature "$PKG" | grep -q "Python Software Foundation" \
+    || errore "Il pacchetto di Python scaricato non ha la firma ufficiale: installazione interrotta per sicurezza."
+  echo "Installo Python (macOS chiede la password) ..."
+  osascript - "$PKG" >/dev/null <<'EOF' || errore "Installazione di Python non riuscita o annullata."
+on run argv
+  do shell script "/usr/sbin/installer -pkg " & quoted form of (item 1 of argv) & " -target /" with administrator privileges
+end run
+EOF
+  rm -f "$PKG"
+  # Certificati per le connessioni sicure (servono per scaricare Whisper e i modelli)
+  CERT="/Applications/Python ${PYTHON_VERSIONE%.*}/Install Certificates.command"
+  [ -f "$CERT" ] && bash "$CERT" >/dev/null 2>&1
+  echo "Python installato."
+}
+
+if whisper_installato; then
+  echo "Python e Whisper sono già installati."
+else
+  PYTHON=$(trova_python)
+  if [ -n "$PYTHON" ]; then
+    echo "Python già presente: $PYTHON"
+  else
+    installa_python
+    PYTHON=$(trova_python) || errore "Python risulta installato ma non lo trovo."
+  fi
+
   domanda "Per trascrivere serve installare Whisper sul tuo Mac.
 
 • Programma: circa 300 MB, in Libreria/Application Support/TrascriviAudio
@@ -89,22 +136,11 @@ if ! whisper_installato; then
 
 I tuoi file audio NON verranno mai inviati online.
 
-Vuoi installarlo ora?" "Installa" || { echo "Installazione annullata."; exit 0; }
-
-  PYTHON=$(trova_python)
-  if [ -z "$PYTHON" ]; then
-    if [ "$(uname)" = Darwin ]; then
-      xcode-select --install >/dev/null 2>&1
-    fi
-    errore "Manca Python 3, necessario per Whisper.
-
-Si è aperta (o si aprirà) la finestra di Apple per installare gli «Strumenti da riga di comando». Completa l'installazione e poi riapri questo file.
-
-In alternativa installa Python da python.org."
-  fi
+Vuoi installarlo ora?" "Installa" || { echo "Installazione di Whisper annullata."; exit 0; }
 
   echo "Installazione di Whisper con $PYTHON ..."
   mkdir -p "$SUPPORTO" || errore "Impossibile creare la cartella $SUPPORTO"
+  rm -rf "$VENV"  # un'installazione precedente non riuscita va rifatta da capo
   "$PYTHON" -m venv "$VENV" || errore "Impossibile creare l'ambiente Python."
   "$VENV/bin/python" -m pip install --upgrade pip || errore "Aggiornamento di pip non riuscito (controlla la connessione)."
   # av<19: PyAV 19 ha tolto un'opzione usata da faster-whisper 1.2 (errore «metadata_errors»)

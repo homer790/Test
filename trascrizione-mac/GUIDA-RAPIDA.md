@@ -12,15 +12,30 @@ da ricontrollare.
 2. Fai **clic destro** su quel file → **Apri** → **Apri**.
    Serve solo la prima volta, perché macOS blocca i programmi scaricati da internet.
    Se non compare il pulsante "Apri": Impostazioni di Sistema → Privacy e sicurezza → **Apri comunque**.
-3. Si apre una finestra del Terminale e poi una serie di finestre:
-   - **Continua**;
-   - scegli la cartella dove installarlo (per esempio Documenti); dentro verrà creata la cartella **Trascrivi Audio**;
-   - **Installa** per installare Whisper. Ci vogliono alcuni minuti e serve internet;
-   - alla fine compare **Installazione completata**.
-4. Sulla **Scrivania** trovi due collegamenti: **Trascrivi Audio** e **Applica Correzioni**.
+3. Si apre una finestra del Terminale e poi una serie di finestre (vedi sotto).
+4. Alla fine compare **Installazione completata** e sulla **Scrivania** trovi due collegamenti:
+   **Trascrivi Audio** e **Applica Correzioni**.
 
-> Se manca Python, si apre la finestra di Apple per installare gli "Strumenti da riga di
-> comando". Installali e rilancia l'installatore.
+### Cosa fa l'installazione, passo per passo
+
+| Passo | Cosa succede | Cosa fai tu |
+|---|---|---|
+| 1. Benvenuto | spiega cosa verrà fatto | **Continua** (o **Annulla** per uscire) |
+| 2. Cartella | chiede dove installare il programma; dentro crea la cartella **Trascrivi Audio** | scegli una cartella, per esempio Documenti |
+| 3. File | copia nella cartella i due comandi, questa guida e le istruzioni complete | niente |
+| 4. Python | **controlla se Python è già sul Mac**. Se c'è, passa oltre senza chiedere nulla. Se manca, chiede se installarlo: viene scaricato l'installatore ufficiale da python.org (circa 70 MB), ne viene verificata la firma e macOS chiede la **password del Mac** | **Installa Python** (o **Annulla**) |
+| 5. Whisper | **controlla se Whisper è già installato**. Se c'è, passa oltre. Se manca, chiede se installarlo (circa 300 MB, in Libreria/Application Support/TrascriviAudio). Ci vogliono alcuni minuti | **Installa** (o **Annulla**) |
+| 6. Collegamenti | crea sulla Scrivania **Trascrivi Audio** e **Applica Correzioni** | niente |
+| 7. Fine | mostra **Installazione completata** e apre la cartella del programma | **OK** |
+
+> Per installare serve internet. I **modelli** di Whisper (circa 4,5 GB) non vengono scaricati
+> ora, ma alla prima trascrizione.
+>
+> Se premi **Annulla** su Python o su Whisper, l'installazione del programma si completa
+> comunque: la richiesta ti verrà ripetuta al primo avvio di **Trascrivi Audio**.
+>
+> Python si può installare in automatico su macOS 11 (Big Sur) o successivo. Su versioni
+> più vecchie installalo a mano da python.org e rilancia l'installatore.
 
 ---
 
@@ -98,8 +113,9 @@ Le trovi in fondo al file di controllo, sotto «Risolte automaticamente», per u
 2. Lanciala come al punto 1 e scegli **la stessa cartella** di prima, poi **Aggiorna**.
 
 I file del programma vengono sostituiti. Il dizionario delle tue correzioni, gli esempi
-e le trascrizioni già fatte **non vengono toccati**. Whisper e i modelli già scaricati
-restano installati. I collegamenti sulla Scrivania vengono ricreati.
+e le trascrizioni già fatte **non vengono toccati**. Python, Whisper e i modelli già
+scaricati vengono trovati e non vengono reinstallati, quindi non ti verrà chiesto nulla.
+I collegamenti sulla Scrivania vengono ricreati.
 
 La versione installata è scritta nel file `versione.txt`, nella cartella del programma.
 
@@ -123,4 +139,5 @@ Nel Finder: menu Vai → Vai alla cartella…, poi incolla il percorso.
 - `venv/` e `modelli/`: Whisper e i modelli.
 
 **Disinstallare:** cancella la cartella del programma, i due collegamenti sulla Scrivania e
-la cartella `~/Library/Application Support/TrascriviAudio`.
+la cartella `~/Library/Application Support/TrascriviAudio`. Python, se è stato installato
+dal programma, resta sul Mac: si può tenere senza problemi.
