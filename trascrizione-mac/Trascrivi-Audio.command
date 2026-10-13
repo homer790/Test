@@ -8,13 +8,20 @@
 #    poi riascolta solo le frasi dubbie: se il riascolto di large coincide con medium
 #    il dubbio è risolto, altrimenti un ascolto in più con medium deve confermarlo.
 # 4. Ritaglia l'audio intorno a ogni parola ancora dubbia (3 s prima e dopo).
-# 5. Avvisa con un popup e apre il file di controllo, da correggere a mano;
-#    poi Applica-Correzioni.command crea la trascrizione corretta e impara le correzioni.
+# 5. Avvisa con un popup e apre la schermata di controllo delle parole (Controlla-Parole.command):
+#    salvando, le correzioni vengono applicate e imparate (dizionario personale).
 #
 # L'audio non viene mai inviato online: da internet si scaricano solo
 # il programma (al primo avvio) e i modelli (al primo utilizzo).
 
 set -u
+
+# Cartella del programma (anche se lanciato dal collegamento sulla Scrivania)
+QUI="$0"
+while [ -L "$QUI" ]; do
+  L=$(readlink "$QUI"); case "$L" in /*) QUI="$L" ;; *) QUI="$(dirname "$QUI")/$L" ;; esac
+done
+QUI=$(cd "$(dirname "$QUI")" && pwd)
 
 SUPPORTO="$HOME/Library/Application Support/TrascriviAudio"
 VENV="$SUPPORTO/venv"
@@ -471,15 +478,25 @@ echo "Controllo:    $CONTROLLO"
 # --- 4. Avviso e apertura del file di controllo
 
 QUANTE=$(grep -m1 '^Parole da riverificare:' "$CONTROLLO" | sed 's/^Parole da riverificare: //')
+if [ "${QUANTE%% *}" = "0" ]; then
+  avviso "Trascrizione completata.
+
+Non ci sono parole da riverificare.
+Ora si aprirà la trascrizione:
+$(basename "$TRASCRIZIONE")"
+  open "$TRASCRIZIONE"
+  echo "Fatto. Puoi chiudere questa finestra."
+  exit 0
+fi
+
 avviso "Trascrizione completata.
 
 Parole da riverificare: $QUANTE
 $(grep -m1 '^(prima del riascolto' "$CONTROLLO")
 
-Ora si aprirà il file con le parole da riverificare.
-I ritagli audio da ascoltare sono nella cartella:
-$(basename "$CLIP")
+Ora si aprirà nel browser la schermata di controllo delle parole:
+ascolta ogni ritaglio, correggi la parola e spunta «Confermata», poi premi «Salva».
 
-Dopo aver corretto e salvato il file, fai doppio clic su Applica-Correzioni.command."
-open "$CONTROLLO"
-echo "Fatto. Puoi chiudere questa finestra."
+Per riprendere il lavoro più tardi: doppio clic su «Controlla Parole» sulla Scrivania."
+# SALTA_SCHERMATA è usato solo dai test automatici
+[ -n "${SALTA_SCHERMATA:-}" ] || "$QUI/Controlla-Parole.command" "$CONTROLLO"

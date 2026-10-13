@@ -40,8 +40,10 @@ fi
 
 # --- File dell'applicazione da mettere nell'archivio
 mkdir -p "$LAVORO/app"
-cp "$QUI/Trascrivi-Audio.command" "$QUI/Applica-Correzioni.command" "$LAVORO/app/"
+cp "$QUI/Trascrivi-Audio.command" "$QUI/Controlla-Parole.command" "$QUI/Applica-Correzioni.command" \
+   "$QUI/schermata_controllo.py" "$QUI/applica_correzioni.py" "$LAVORO/app/"
 cp "$GUIDA_PDF" "$LAVORO/app/Guida rapida.pdf"
+cp "$QUI/GUIDA-RAPIDA.md" "$LAVORO/app/Guida rapida.md"
 cp "$QUI/LEGGIMI.md" "$LAVORO/app/Istruzioni complete.txt"
 echo "$VERSIONE" > "$LAVORO/app/versione.txt"
 chmod +x "$LAVORO/app/"*.command
@@ -86,7 +88,7 @@ domanda "Benvenuto nell'installazione di Trascrivi Audio (versione @VERSIONE@).
 Ora ti chiederò in quale cartella installarlo: verrà creata la cartella «$NOME_CARTELLA».
 Poi controllerò se sul Mac ci sono Python e Whisper: se mancano, ti chiederò
 se installarli (puoi sempre annullare).
-Sulla Scrivania troverai i collegamenti «Trascrivi Audio» e «Applica Correzioni».
+Sulla Scrivania troverai i collegamenti «Trascrivi Audio» e «Controlla Parole».
 
 Se il programma è già installato, scegli la stessa cartella per aggiornarlo:
 dizionario, esempi e trascrizioni non vengono toccati." "Continua" || exit 0
@@ -125,7 +127,8 @@ fi
 SCRIVANIA="$HOME/Desktop"
 mkdir -p "$SCRIVANIA"
 ln -sfn "$DEST/Trascrivi-Audio.command" "$SCRIVANIA/Trascrivi Audio"
-ln -sfn "$DEST/Applica-Correzioni.command" "$SCRIVANIA/Applica Correzioni"
+ln -sfn "$DEST/Controlla-Parole.command" "$SCRIVANIA/Controlla Parole"
+rm -f "$SCRIVANIA/Applica Correzioni"  # collegamento delle versioni precedenti: ora si usa «Controlla Parole»
 
 avviso "Installazione completata.
 
@@ -133,7 +136,7 @@ $STATO_WHISPER
 
 Sulla Scrivania trovi:
 • Trascrivi Audio – per trascrivere un file audio
-• Applica Correzioni – dopo aver corretto il file di controllo
+• Controlla Parole – per riprendere il controllo delle parole dubbie
 
 I file del programma e la guida rapida sono in:
 $DEST"

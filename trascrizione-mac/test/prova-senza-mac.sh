@@ -48,7 +48,7 @@ chmod +x "$PROVA/bin/"*
 esegui() {
   echo; echo "################ $1 ################" | tee -a "$LOG"
   PATH="$PROVA/bin:$PATH" HOME="$PROVA/home" \
-    MODELLO_A="${MODELLO_A:-base}" MODELLO_B="${MODELLO_B:-tiny}" MODELLO_C="${MODELLO_C:-tiny}" \
+    MODELLO_A="${MODELLO_A:-base}" MODELLO_B="${MODELLO_B:-tiny}" MODELLO_C="${MODELLO_C:-tiny}" SALTA_SCHERMATA=1 \
     "$QUI/../$1" && echo "Esito: 0" || echo "Esito: $?"
 }
 mostra() {

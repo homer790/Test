@@ -2,19 +2,23 @@
 
 > **Per installarlo:** scarica [`dist/Installa-TrascriviAudio.zip`](dist/Installa-TrascriviAudio.zip)
 > e segui la [Guida rapida](GUIDA-RAPIDA.md) (dentro l'installatore c'è anche in PDF). L'installatore chiede la cartella, installa Whisper
-> e mette sulla Scrivania i collegamenti «Trascrivi Audio» e «Applica Correzioni».
+> e mette sulla Scrivania i collegamenti «Trascrivi Audio» e «Controlla Parole».
 > Per aggiornare, rilancialo scegliendo la stessa cartella.
 >
 > Per rigenerare lo ZIP e «Guida rapida.pdf» dopo aver modificato i file: `./crea-installatore.sh`
 > (servono pandoc e Chrome o Chromium per il PDF; senza, usa il PDF già presente).
 > Per provarlo senza Mac: `test/prova-installatore.sh`.
 
-Due comandi da aprire con doppio clic:
+Comandi da aprire con doppio clic:
 
 | Comando | Cosa fa |
 |---|---|
-| `Trascrivi-Audio.command` | trascrive l'audio, ricontrolla le parole dubbie e prepara i ritagli da ascoltare |
-| `Applica-Correzioni.command` | applica le tue correzioni e le impara per le trascrizioni future |
+| `Trascrivi-Audio.command` | trascrive l'audio, ricontrolla le parole dubbie, prepara i ritagli e apre la schermata di controllo |
+| `Controlla-Parole.command` | apre la **schermata di controllo** (nel browser, solo in locale) per riprendere il lavoro: audio, campo modificabile, casella «Confermata», 10 parole per pagina, **Salva**/**Annulla**. Salvando applica e impara le correzioni |
+| `Applica-Correzioni.command` | alternativa senza schermata: applica le correzioni scritte a mano nel file di controllo |
+
+File Python usati dai comandi: `schermata_controllo.py` (schermata) e `applica_correzioni.py`
+(applicazione delle correzioni, condivisa da schermata e Applica-Correzioni).
 
 L'audio non lascia mai il computer. Da internet si scaricano solo il programma
 (al primo avvio, circa 300 MB) e i modelli (alla prima trascrizione, circa 4,5 GB).
@@ -30,7 +34,7 @@ L'audio non lascia mai il computer. Da internet si scaricano solo il programma
 5. **4° ascolto:** dove ancora non coincidono, riascolta quelle frasi con medium.
    Se coincide con il riascolto di large-v3, il dubbio è risolto; altrimenti resta l'asterisco.
 6. Per ogni parola ancora dubbia salva un **ritaglio audio numerato** (3 secondi prima e dopo).
-7. Mostra un popup e apre il **file di controllo**.
+7. Mostra un popup e apre la **schermata di controllo** (vedi la [Guida rapida](GUIDA-RAPIDA.md), punto 4).
 
 ### File creati
 
