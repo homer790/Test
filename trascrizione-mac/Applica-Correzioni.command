@@ -1,65 +1,41 @@
 #!/bin/bash
-# Applica-Correzioni.command — da aprire con doppio clic dopo aver corretto A MANO il file di controllo
-# (in alternativa alla schermata di controllo, che applica le correzioni da sola quando salvi).
+# Applica-Correzioni.command — alternativa alla schermata di controllo, per chi corregge A MANO
+# il file delle parole dubbie di un progetto (righe «PAROLA 001: ...», togliendo gli asterischi).
 #
-# 1. Chiede il file di controllo corretto a mano (NOME_controllo.txt).
-# 2. Crea NOME_trascrizione_corretta.txt con le tue correzioni.
-# 3. Impara correzioni e conferme: le aggiunge al dizionario personale usato dalle
-#    trascrizioni future (le parole verificate non verranno più segnate) e salva i
-#    ritagli audio corretti come esempi.
+# 1. Mostra la lista dei progetti già trascritti e lavora solo sui file di quello scelto.
+# 2. Crea la trascrizione corretta del progetto.
+# 3. Impara correzioni e conferme (dizionario personale) e salva i ritagli corretti come esempi.
 # 4. Avvisa con un popup e apre la trascrizione corretta.
-#
 # Si può rilanciare quante volte si vuole: riparte sempre dalla trascrizione originale.
 
 set -u
 
-# Cartella del programma (anche se lanciato dal collegamento sulla Scrivania)
+# Cartella del programma (anche se lanciato da un collegamento)
 QUI="$0"
 while [ -L "$QUI" ]; do
   L=$(readlink "$QUI"); case "$L" in /*) QUI="$L" ;; *) QUI="$(dirname "$QUI")/$L" ;; esac
 done
 QUI=$(cd "$(dirname "$QUI")" && pwd)
-
-SUPPORTO="$HOME/Library/Application Support/TrascriviAudio"
-VENV="$SUPPORTO/venv"
 TITOLO="Applica correzioni"
-export DIZIONARIO="$SUPPORTO/dizionario.txt"
-export ESEMPI="$SUPPORTO/esempi"
+. "$QUI/comune.sh"
 
-avviso() {  # avviso "messaggio" [note|caution|stop]
-  osascript - "$1" "${2:-note}" "$TITOLO" >/dev/null 2>&1 <<'EOF'
-on run argv
-  set icona to note
-  if item 2 of argv is "caution" then set icona to caution
-  if item 2 of argv is "stop" then set icona to stop
-  display dialog (item 1 of argv) buttons {"OK"} default button "OK" with title (item 3 of argv) with icon icona
-end run
-EOF
-}
-
-errore() {
-  avviso "$1" stop
-  echo "ERRORE: $1"
-  exit 1
-}
-
-CONTROLLO=$(osascript -e 'POSIX path of (choose file with prompt "Scegli il file di controllo che hai corretto (finisce con _controllo.txt):")' 2>/dev/null) \
-  || { echo "Nessun file scelto."; exit 0; }
-
-case "$(basename "$CONTROLLO")" in
-  *_controllo*.txt) ;;
-  *) errore "Il file scelto non è un file di controllo (il nome deve contenere «_controllo» e finire con .txt)." ;;
+trap 'progetto chiudi >/dev/null 2>&1' EXIT   # il file del progetto in corso è temporaneo
+seleziona_progetto "Scegli il progetto di cui applicare le correzioni:" --trascritti
+case $? in
+  1) echo "Annullato."; exit 0 ;;
+  2) errore "Non ci sono ancora progetti trascritti." ;;
 esac
-CORRETTA="$(dirname "$CONTROLLO")/$(basename "$CONTROLLO" .txt | sed 's/_controllo/_trascrizione_corretta/').txt"
 
-PYTHON="$VENV/bin/python"
-[ -x "$PYTHON" ] || PYTHON=$(command -v python3) || errore "Python non trovato. Esegui prima Trascrivi-Audio.command."
+CONTROLLO=$(progetto campo controllo)
+CORRETTA=$(progetto campo trascrizione_corretta)
+[ -f "$CONTROLLO" ] || errore "Il progetto non ha ancora parole da controllare."
+PYTHON=$(python_programma) || errore "Python non trovato. Esegui prima Trascrivi Audio."
 
 RIEPILOGO=$("$PYTHON" "$QUI/applica_correzioni.py" "$CONTROLLO") \
-  || errore "Non sono riuscito ad applicare le correzioni. Guarda la finestra del Terminale."
+  || errore "Non sono riuscito ad applicare le correzioni."
 
 IFS='|' read -r CORRETTE CONFERMATE RIMASTE NUOVE MANCANTI <<< "$RIEPILOGO"
-MESSAGGIO="Correzioni applicate.
+MESSAGGIO="Correzioni applicate al progetto «$(progetto campo nome)».
 
 Parole corrette: $CORRETTE
 Parole confermate: $CONFERMATE

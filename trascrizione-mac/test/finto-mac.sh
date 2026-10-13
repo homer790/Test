@@ -1,0 +1,30 @@
+# finto-mac.sh — da includere nei test («. test/finto-mac.sh CARTELLA»): crea in CARTELLA/bin
+# versioni finte di osascript e open che simulano le finestre del Mac.
+# Le risposte dell'utente si scrivono, una per riga, nel file $RISPOSTE:
+#   il testo di un pulsante, un nome da scrivere, un percorso da scegliere o una voce della lista;
+#   ANNULLA = clic su «Annulla». Le finestre con il solo pulsante OK non consumano risposte.
+# Ogni finestra viene registrata in $LOG.
+
+FINTO="$1"
+mkdir -p "$FINTO/bin"
+export RISPOSTE="$FINTO/risposte.txt" LOG="$FINTO/finestre.log"
+: > "$RISPOSTE"; : > "$LOG"
+cat > "$FINTO/bin/osascript" <<'OSA'
+#!/bin/bash
+prossima() {  # toglie e stampa la prima risposta della coda
+  local r; r=$(head -n 1 "$RISPOSTE"); sed -i.bak '1d' "$RISPOSTE"; rm -f "$RISPOSTE.bak"
+  [ -n "$r" ] || { echo "   !! RISPOSTA MANCANTE" >> "$LOG"; exit 1; }
+  echo "   -> $r" >> "$LOG"; [ "$r" = "ANNULLA" ] && exit 1; echo "$r"
+}
+if [ "${1:-}" = "-e" ]; then
+  echo "== $(echo "$2" | grep -o 'prompt "[^"]*"' | head -1)" >> "$LOG"; prossima; exit 0
+fi
+shift; script=$(cat)
+testo=$(printf '%s | ' "$@" | tr '\n' ' ' | cut -c1-160)
+if echo "$script" | grep -q 'buttons {"OK"}'; then echo "== avviso: $testo" >> "$LOG"; exit 0; fi
+echo "== finestra: $testo" >> "$LOG"; prossima
+OSA
+printf '#!/bin/bash\necho "== aperto: $1" >> "$LOG"\n' > "$FINTO/bin/open"
+chmod +x "$FINTO/bin/"*
+export PATH="$FINTO/bin:$PATH"
+risposte() { printf '%s\n' "$@" > "$RISPOSTE"; }

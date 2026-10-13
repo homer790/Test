@@ -41,7 +41,7 @@ fi
 # --- File dell'applicazione da mettere nell'archivio
 mkdir -p "$LAVORO/app"
 cp "$QUI/Trascrivi-Audio.command" "$QUI/Controlla-Parole.command" "$QUI/Applica-Correzioni.command" \
-   "$QUI/schermata_controllo.py" "$QUI/applica_correzioni.py" "$LAVORO/app/"
+   "$QUI/comune.sh" "$QUI/progetti.py" "$QUI/schermata_controllo.py" "$QUI/applica_correzioni.py" "$LAVORO/app/"
 cp "$GUIDA_PDF" "$LAVORO/app/Guida rapida.pdf"
 cp "$QUI/GUIDA-RAPIDA.md" "$LAVORO/app/Guida rapida.md"
 cp "$QUI/LEGGIMI.md" "$LAVORO/app/Istruzioni complete.txt"
@@ -88,7 +88,8 @@ domanda "Benvenuto nell'installazione di Trascrivi Audio (versione @VERSIONE@).
 Ora ti chiederò in quale cartella installarlo: verrà creata la cartella «$NOME_CARTELLA».
 Poi controllerò se sul Mac ci sono Python e Whisper: se mancano, ti chiederò
 se installarli (puoi sempre annullare).
-Sulla Scrivania troverai i collegamenti «Trascrivi Audio» e «Controlla Parole».
+Sulla Scrivania troverai il collegamento «Trascrivi Audio», che gestisce tutto:
+progetti, trascrizioni e controllo delle parole. Alla fine si avvierà da solo.
 
 Se il programma è già installato, scegli la stessa cartella per aggiornarlo:
 dizionario, esempi e trascrizioni non vengono toccati." "Continua" || exit 0
@@ -119,25 +120,38 @@ echo "File estratti in: $DEST"
 VENV="$HOME/Library/Application Support/TrascriviAudio/venv"
 if "$VENV/bin/python" -c 'import faster_whisper' 2>/dev/null; then
   STATO_WHISPER="Python e Whisper sono installati."
+  WHISPER_OK=1
 else
   STATO_WHISPER="Python e/o Whisper non sono stati installati: verranno proposti al primo avvio di «Trascrivi Audio»."
+  WHISPER_OK=""
 fi
 
 # --- Collegamenti sulla Scrivania
 SCRIVANIA="$HOME/Desktop"
 mkdir -p "$SCRIVANIA"
 ln -sfn "$DEST/Trascrivi-Audio.command" "$SCRIVANIA/Trascrivi Audio"
-ln -sfn "$DEST/Controlla-Parole.command" "$SCRIVANIA/Controlla Parole"
-rm -f "$SCRIVANIA/Applica Correzioni"  # collegamento delle versioni precedenti: ora si usa «Controlla Parole»
+# collegamenti delle versioni precedenti: ora tutto passa da «Trascrivi Audio»
+rm -f "$SCRIVANIA/Controlla Parole" "$SCRIVANIA/Applica Correzioni"
+mkdir -p "$DEST/Progetti"
 
+if [ -n "$WHISPER_OK" ]; then
+  avviso "Installazione completata.
+
+$STATO_WHISPER
+
+Sulla Scrivania trovi «Trascrivi Audio»: gestisce progetti, trascrizioni e controllo delle parole.
+I progetti vengono salvati in:
+$DEST/Progetti
+
+Ora si avvia Trascrivi Audio."
+  echo "Avvio Trascrivi Audio..."
+  exec "$DEST/Trascrivi-Audio.command"
+fi
 avviso "Installazione completata.
 
 $STATO_WHISPER
 
-Sulla Scrivania trovi:
-• Trascrivi Audio – per trascrivere un file audio
-• Controlla Parole – per riprendere il controllo delle parole dubbie
-
+Sulla Scrivania trovi «Trascrivi Audio»: gestisce progetti, trascrizioni e controllo delle parole.
 I file del programma e la guida rapida sono in:
 $DEST"
 command -v open >/dev/null && open "$DEST"

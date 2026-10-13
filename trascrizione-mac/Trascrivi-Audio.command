@@ -1,16 +1,23 @@
 #!/bin/bash
-# Trascrivi-Audio.command — da aprire con doppio clic nel Finder (macOS).
+# Trascrivi-Audio.command — il comando principale (collegamento «Trascrivi Audio» sulla Scrivania).
 #
 # 1. Controlla Python e Whisper: se mancano, chiede il permesso (popup con Annulla)
 #    e li installa (Python da python.org, Whisper in locale).
-# 2. Chiede il file audio e la cartella dove salvare i risultati.
+# 2. Progetti: chiede se aprire un progetto esistente o crearne uno nuovo.
+#    - Apri: lista dei progetti → «Analisi delle parole» (schermata di controllo)
+#            oppure «Rielabora la trascrizione».
+#    - Nuovo: nome del progetto → numero 000-999 e cartella «NNN_NomeSenzaSpazi»
+#             → file audio sorgente, copiato nel progetto.
+#    Il file generale Progetti/elenco-progetti.json elenca progetti, cartelle e file;
+#    Progetti/progetto-in-corso.json (temporaneo) contiene il progetto su cui si lavora.
 # 3. Trascrive due volte (large-v3 e medium), confronta e segna le parole dubbie,
 #    poi riascolta solo le frasi dubbie: se il riascolto di large coincide con medium
 #    il dubbio è risolto, altrimenti un ascolto in più con medium deve confermarlo.
 # 4. Ritaglia l'audio intorno a ogni parola ancora dubbia (3 s prima e dopo).
-# 5. Avvisa con un popup e apre la schermata di controllo delle parole (Controlla-Parole.command):
+# 5. Avvisa con un popup e apre la schermata di controllo delle parole del progetto:
 #    salvando, le correzioni vengono applicate e imparate (dizionario personale).
 #
+# Tutti i file di una trascrizione stanno nella cartella del suo progetto.
 # L'audio non viene mai inviato online: da internet si scaricano solo
 # il programma (al primo avvio) e i modelli (al primo utilizzo).
 
@@ -23,10 +30,9 @@ while [ -L "$QUI" ]; do
 done
 QUI=$(cd "$(dirname "$QUI")" && pwd)
 
-SUPPORTO="$HOME/Library/Application Support/TrascriviAudio"
-VENV="$SUPPORTO/venv"
-SCRIPT_PY="$SUPPORTO/trascrivi_dubbi.py"
 TITOLO="Trascrizione audio"
+. "$QUI/comune.sh"
+SCRIPT_PY="$SUPPORTO/trascrivi_dubbi.py"
 
 # Impostazioni modificabili (anche da Terminale, es. SOGLIA=0.7 ./Trascrivi-Audio.command)
 export MODELLO_A="${MODELLO_A:-large-v3}"   # trascrizione principale
@@ -36,37 +42,6 @@ export LINGUA="${LINGUA:-it}"
 export MODELLO_C="${MODELLO_C:-medium}"     # terzo ascolto delle frasi ancora dubbie
 export RIASCOLTO="${RIASCOLTO:-1}"          # 0 = non riascoltare le frasi dubbie
 export CARTELLA_MODELLI="$SUPPORTO/modelli"
-export DIZIONARIO="$SUPPORTO/dizionario.txt"   # creato e arricchito da Applica-Correzioni.command
-
-# --- Finestre di dialogo (testo passato come argomento, così le virgolette non creano problemi)
-
-avviso() {  # avviso "messaggio" [note|caution|stop]
-  osascript - "$1" "${2:-note}" "$TITOLO" >/dev/null 2>&1 <<'EOF'
-on run argv
-  set icona to note
-  if item 2 of argv is "caution" then set icona to caution
-  if item 2 of argv is "stop" then set icona to stop
-  display dialog (item 1 of argv) buttons {"OK"} default button "OK" with title (item 3 of argv) with icon icona
-end run
-EOF
-}
-
-domanda() {  # domanda "messaggio" "pulsante sì" → 0 se confermato, 1 se annullato
-  osascript - "$1" "$2" "$TITOLO" >/dev/null 2>&1 <<'EOF'
-on run argv
-  display dialog (item 1 of argv) buttons {"Annulla", item 2 of argv} default button (item 2 of argv) cancel button "Annulla" with title (item 3 of argv)
-end run
-EOF
-}
-
-errore() {
-  avviso "$1
-
-Dettagli nella finestra del Terminale." stop
-  echo
-  echo "ERRORE: $1"
-  exit 1
-}
 
 # --- 1. Python e Whisper: si installano solo se mancano, e solo dopo aver chiesto
 
@@ -162,25 +137,74 @@ if [ "${1:-}" = "--installa" ]; then
   exit 0
 fi
 
-# --- 2. File audio e cartella di destinazione
+# --- 2. Progetto: aprirne uno esistente o crearne uno nuovo
 
-AUDIO=$(osascript -e 'POSIX path of (choose file with prompt "Scegli il file audio (o video) da trascrivere:")' 2>/dev/null) \
-  || { echo "Nessun file scelto."; exit 0; }
-DESTINAZIONE=$(osascript -e 'POSIX path of (choose folder with prompt "Dove salvo i file di trascrizione?" default location (path to documents folder))' 2>/dev/null) \
-  || { echo "Nessuna cartella scelta."; exit 0; }
-DESTINAZIONE="${DESTINAZIONE%/}"
+trap 'progetto chiudi >/dev/null 2>&1' EXIT   # il file del progetto in corso è temporaneo
+CHIEDI_AUDIO=""
 
-NOME=$(basename "$AUDIO")
-NOME="${NOME%.*}"
-SUFFISSO=""
-if [ -e "$DESTINAZIONE/${NOME}_controllo.txt" ] || [ -e "$DESTINAZIONE/${NOME}_trascrizione.txt" ] \
-   || [ -e "$DESTINAZIONE/${NOME}_clip" ]; then
-  SUFFISSO="_$(date +%Y%m%d-%H%M%S)"   # non sovrascrivere risultati precedenti
+AZIONE=$(scelta "Vuoi aprire un progetto esistente o crearne uno nuovo?" "Annulla" "Apri un progetto" "Nuovo progetto") \
+  || { echo "Annullato."; exit 0; }
+
+if [ "$AZIONE" = "Apri un progetto" ]; then
+  seleziona_progetto "Scegli il progetto da aprire:"
+  case $? in
+    1) echo "Annullato."; exit 0 ;;
+    2) avviso "Non ci sono ancora progetti: ne creiamo uno nuovo."
+       AZIONE="Nuovo progetto" ;;
+  esac
 fi
-TRASCRIZIONE="$DESTINAZIONE/${NOME}_trascrizione${SUFFISSO}.txt"
-CONTROLLO="$DESTINAZIONE/${NOME}_controllo${SUFFISSO}.txt"
-DATI="$DESTINAZIONE/${NOME}_dati${SUFFISSO}.json"      # serve ad Applica-Correzioni
-CLIP="$DESTINAZIONE/${NOME}_clip${SUFFISSO}"
+
+if [ "$AZIONE" = "Apri un progetto" ]; then
+  NOME_PROGETTO=$(progetto campo nome)
+  if [ "$(progetto campo stato)" = "trascritto" ]; then
+    COSA=$(scelta "Progetto «$NOME_PROGETTO»: cosa vuoi fare?" "Annulla" "Rielabora la trascrizione" "Analisi delle parole") \
+      || { echo "Annullato."; exit 0; }
+    if [ "$COSA" = "Analisi delle parole" ]; then
+      "$QUI/Controlla-Parole.command" --progetto-in-corso
+      exit $?
+    fi
+    domanda "Rielaborare la trascrizione del progetto «$NOME_PROGETTO»?
+
+La trascrizione e le parole da controllare verranno rifatte da capo: le correzioni fatte in questo progetto andranno perse (il tuo dizionario personale resta e verrà usato)." "Rielabora" \
+      || { echo "Annullato."; exit 0; }
+  else
+    avviso "Il progetto «$NOME_PROGETTO» non ha ancora una trascrizione completa: la avvio ora."
+  fi
+  AUDIO=$(progetto campo audio)
+  [ -n "$AUDIO" ] && [ -f "$AUDIO" ] || CHIEDI_AUDIO=1
+else
+  MESSAGGIO="Scrivi il nome del nuovo progetto:"
+  while :; do
+    NOME_PROGETTO=$(chiedi_testo "$MESSAGGIO") || { echo "Annullato."; exit 0; }
+    ERRORE_CREA=$(progetto crea "$NOME_PROGETTO" 2>&1 >/dev/null) && break
+    MESSAGGIO="$ERRORE_CREA
+
+Scrivi il nome del nuovo progetto:"
+  done
+  CHIEDI_AUDIO=1
+fi
+
+if [ -n "$CHIEDI_AUDIO" ]; then
+  SORGENTE=$(osascript -e 'POSIX path of (choose file with prompt "Scegli il file audio (o video) sorgente del progetto:")' 2>/dev/null) \
+    || { echo "Nessun file scelto."; exit 0; }
+  echo "Copio l'audio nel progetto..."
+  MSG=$(progetto imposta-audio "$SORGENTE" 2>&1 >/dev/null) || errore "$MSG"
+fi
+
+# File del progetto (tutti nella sua cartella)
+NOME_PROGETTO=$(progetto campo nome)
+CARTELLA=$(progetto campo cartella)
+AUDIO=$(progetto campo audio)
+TRASCRIZIONE=$(progetto campo trascrizione)
+CORRETTA=$(progetto campo trascrizione_corretta)
+CONTROLLO=$(progetto campo controllo)
+DATI=$(progetto campo dati)
+CLIP=$(progetto campo clip)
+# Una nuova trascrizione sostituisce i risultati precedenti del progetto
+rm -rf "$CLIP" "$CONTROLLO" "$DATI" "$CORRETTA" "$TRASCRIZIONE"
+progetto stato "in trascrizione"
+echo "Progetto:     $(progetto campo numero) – $NOME_PROGETTO"
+echo "Cartella:     $CARTELLA"
 
 # --- 3. Trascrizione e confronto (script Python scritto ogni volta, così è sempre aggiornato)
 
@@ -468,14 +492,14 @@ with open(file_controllo, "w", encoding="utf-8") as f:
 print(f"\nParole da riverificare: {len(dubbie)} su {len(a)} (prima del riascolto: {dubbie_iniziali})")
 PYEOF
 
-echo "Audio:        $AUDIO"
-echo "Trascrizione: $TRASCRIZIONE"
-echo "Controllo:    $CONTROLLO"
+echo "Audio:        $(basename "$AUDIO")"
+echo "Trascrizione: $(basename "$TRASCRIZIONE")"
 
 "$VENV/bin/python" "$SCRIPT_PY" "$AUDIO" "$TRASCRIZIONE" "$CONTROLLO" "$DATI" "$CLIP" \
   || errore "La trascrizione non è riuscita."
+progetto stato trascritto
 
-# --- 4. Avviso e apertura del file di controllo
+# --- 4. Avviso e apertura della schermata di controllo del progetto
 
 QUANTE=$(grep -m1 '^Parole da riverificare:' "$CONTROLLO" | sed 's/^Parole da riverificare: //')
 if [ "${QUANTE%% *}" = "0" ]; then
@@ -497,6 +521,5 @@ $(grep -m1 '^(prima del riascolto' "$CONTROLLO")
 Ora si aprirà nel browser la schermata di controllo delle parole:
 ascolta ogni ritaglio, correggi la parola e spunta «Confermata», poi premi «Salva».
 
-Per riprendere il lavoro più tardi: doppio clic su «Controlla Parole» sulla Scrivania."
-# SALTA_SCHERMATA è usato solo dai test automatici
-[ -n "${SALTA_SCHERMATA:-}" ] || "$QUI/Controlla-Parole.command" "$CONTROLLO"
+Per riprendere il lavoro più tardi: «Trascrivi Audio» → «Apri un progetto» → «$NOME_PROGETTO» → «Analisi delle parole»."
+"$QUI/Controlla-Parole.command" --progetto-in-corso

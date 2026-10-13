@@ -27,8 +27,9 @@ def percorsi(file_controllo):
     base = nome[:-4] if nome.endswith(".txt") else nome
     if "_controllo" not in base:
         raise ValueError("Il nome del file deve contenere «_controllo» e finire con .txt.")
-    dati = os.path.join(cartella, base.replace("_controllo", "_dati", 1) + ".json")
-    corretta = os.path.join(cartella, base.replace("_controllo", "_trascrizione_corretta", 1) + ".txt")
+    prima, _, dopo = base.rpartition("_controllo")  # l'ultima: il nome del progetto potrebbe contenerla
+    dati = os.path.join(cartella, f"{prima}_dati{dopo}.json")
+    corretta = os.path.join(cartella, f"{prima}_trascrizione_corretta{dopo}.txt")
     return dati, corretta
 
 

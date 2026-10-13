@@ -1,47 +1,44 @@
 #!/bin/bash
-# Prova l'installatore autoestraente su Linux (o su Mac senza clic), simulando le finestre.
-# uso: test/prova-installatore.sh   (prima esegue ./crea-installatore.sh)
-# Simula: prima installazione, poi aggiornamento nella stessa cartella. Usa una HOME temporanea.
+# Prova l'installatore autoestraente, simulando le finestre del Mac (test/finto-mac.sh).
+# uso: test/prova-installatore.sh   (rigenera prima lo ZIP con ./crea-installatore.sh)
+# Simula: installazione con collegamenti di una versione precedente sulla Scrivania, avvio
+# automatico di Trascrivi Audio (annullato), poi aggiornamento nella stessa cartella.
 
-set -eu
-QUI=$(cd "$(dirname "$0")" && pwd)
-"$QUI/../crea-installatore.sh" >/dev/null
-
+set -u
+QUI=$(cd "$(dirname "$0")/.." && pwd)
+"$QUI/crea-installatore.sh" >/dev/null || exit 1
 PROVA=$(mktemp -d)
-mkdir -p "$PROVA/bin" "$PROVA/home" "$PROVA/scaricati" "$PROVA/Documenti"
-LOG="$PROVA/finestre.log"
+. "$QUI/test/finto-mac.sh" "$PROVA"
+export HOME="$PROVA/home"
+mkdir -p "$HOME/Desktop" "$PROVA/scaricati" "$PROVA/Documenti"
+touch "$HOME/Desktop/Controlla Parole" "$HOME/Desktop/Applica Correzioni"  # versione precedente
+FALLITE=0
+verifica() { local d="$1"; shift; if "$@"; then echo "   OK  $d"; else echo "   NO  $d"; FALLITE=$((FALLITE + 1)); fi; }
 
-cat > "$PROVA/bin/osascript" <<EOF
-#!/bin/bash
-if [ "\${1:-}" = "-e" ]; then
-  case "\$2" in
-    *"choose folder"*) echo "== scelta cartella" >> "$LOG"; echo "$PROVA/Documenti/" ;;
-  esac
-  exit 0
-fi
-shift
-echo "== finestra: \$1" >> "$LOG"
-cat > /dev/null
-exit 0
-EOF
-cat > "$PROVA/bin/open" <<EOF
-#!/bin/bash
-echo "== aperto: \$1" >> "$LOG"
-EOF
-chmod +x "$PROVA/bin/"*
+(cd "$PROVA/scaricati" && unzip -q "$QUI/dist/Installa-TrascriviAudio.zip")
+DEST="$PROVA/Documenti/Trascrivi Audio"
 
-# Come sul Mac: si scarica lo ZIP, lo si apre e si lancia il .command
-(cd "$PROVA/scaricati" && unzip -q "$QUI/../dist/Installa-TrascriviAudio.zip")
-for giro in "Prima installazione" "Aggiornamento"; do
-  echo "################ $giro ################" | tee -a "$LOG"
-  PATH="$PROVA/bin:$PATH" HOME="$PROVA/home" "$PROVA/scaricati/Installa-TrascriviAudio.command" \
-    > "$PROVA/terminale.log" 2>&1 && echo "Esito: 0" || echo "Esito: $?"
-  tail -3 "$PROVA/terminale.log"
-done
+echo "################ Prima installazione ################" | tee -a "$LOG"
+risposte "Continua" "$PROVA/Documenti/" "Installa" "ANNULLA"
+"$PROVA/scaricati/Installa-TrascriviAudio.command" > "$PROVA/terminale1.log" 2>&1; echo "esito: $?"
+verifica "file del programma estratti" [ -x "$DEST/Trascrivi-Audio.command" -a -f "$DEST/progetti.py" -a -f "$DEST/comune.sh" ]
+verifica "guida .md e .pdf" [ -f "$DEST/Guida rapida.md" -a -f "$DEST/Guida rapida.pdf" ]
+verifica "cartella Progetti" [ -d "$DEST/Progetti" ]
+verifica "collegamento «Trascrivi Audio»" [ -L "$HOME/Desktop/Trascrivi Audio" ]
+verifica "vecchi collegamenti tolti" [ ! -e "$HOME/Desktop/Controlla Parole" -a ! -e "$HOME/Desktop/Applica Correzioni" ]
+verifica "Whisper installato" "$HOME/Library/Application Support/TrascriviAudio/venv/bin/python" -c 'import faster_whisper'
+verifica "Trascrivi Audio avviato da solo dopo l'installazione" grep -q "Vuoi aprire un progetto esistente" "$LOG"
+
+echo "################ Aggiornamento ################" | tee -a "$LOG"
+risposte "Continua" "$PROVA/Documenti/" "Aggiorna" "ANNULLA"
+"$PROVA/scaricati/Installa-TrascriviAudio.command" > "$PROVA/terminale2.log" 2>&1; echo "esito: $?"
+verifica "proposto l'aggiornamento" grep -q "c'è già Trascrivi Audio" "$LOG"
+verifica "Whisper non richiesto di nuovo" [ "$(grep -c "installare Whisper" "$LOG")" = 1 ]
+verifica "cartella Progetti conservata" [ -d "$DEST/Progetti" ]
 
 echo; echo "======== Finestre mostrate ========"; cat "$LOG"
-echo; echo "======== Cartella installata ========"; ls -la "$PROVA/Documenti/Trascrivi Audio"
-echo; echo "======== Scrivania ========"; ls -la "$PROVA/home/Desktop"
-echo; echo "======== Whisper ========"
-"$PROVA/home/Library/Application Support/TrascriviAudio/venv/bin/python" -c 'import faster_whisper; print("faster-whisper", faster_whisper.__version__)'
+echo; echo "======== Scrivania ========"; ls -la "$HOME/Desktop"
+echo
+if [ "$FALLITE" = 0 ]; then echo "TUTTE LE VERIFICHE SUPERATE"; else echo "VERIFICHE FALLITE: $FALLITE"; fi
 echo "(file di prova in $PROVA)"
+[ "$FALLITE" = 0 ]

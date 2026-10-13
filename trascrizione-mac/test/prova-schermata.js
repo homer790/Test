@@ -38,10 +38,12 @@ const out = (process.env.USCITA || '.') + '/';
   await page.locator('.voce').nth(2).locator('input[type=text]').fill('bozza');
   console.log('stato:', await page.locator('#stato').innerText());
   // cambio pagina: le modifiche restano
-  await page.locator('button.pagina', { hasText: '2' }).click();
-  console.log('pagina 2, prima voce:', await page.locator('.voce').first().getAttribute('data-numero'));
-  await page.locator('button.pagina', { hasText: /^1/ }).click();
-  console.log('ritorno a pagina 1, voce 1 ancora modificata:', await page.locator('.voce').nth(0).locator('input[type=text]').inputValue());
+  if (await page.locator('button.pagina').count() >= 2) {
+    await page.locator('button.pagina', { hasText: '2' }).click();
+    console.log('pagina 2, prima voce:', await page.locator('.voce').first().getAttribute('data-numero'));
+    await page.locator('button.pagina', { hasText: /^1/ }).click();
+    console.log('ritorno a pagina 1, voce 1 ancora modificata:', await page.locator('.voce').nth(0).locator('input[type=text]').inputValue());
+  } else console.log('una sola pagina: cambio pagina non provato');
   await page.screenshot({ path: out + '2-modifiche.png', fullPage: true });
   // 2. Annulla → tutto come nel file
   await page.click('#annulla');
