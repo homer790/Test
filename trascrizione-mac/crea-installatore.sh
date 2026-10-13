@@ -11,10 +11,37 @@ VERSIONE=$(date +%Y.%m.%d)
 LAVORO=$(mktemp -d)
 trap 'rm -rf "$LAVORO"' EXIT
 
+# --- Guida rapida in PDF: GUIDA-RAPIDA.md → HTML (pandoc) → PDF (Chrome/Chromium senza finestra).
+# Se mancano gli strumenti si usa il PDF già presente nel repository.
+GUIDA_PDF="$QUI/Guida rapida.pdf"
+trova_chrome() {
+  for c in "${CHROME:-}" "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+           "/Applications/Chromium.app/Contents/MacOS/Chromium" \
+           "$(command -v chromium || true)" "$(command -v chromium-browser || true)" \
+           "$(command -v google-chrome || true)" /opt/pw-browsers/chromium-*/chrome-linux/chrome; do
+    [ -n "$c" ] && [ -x "$c" ] && { echo "$c"; return 0; }
+  done
+  return 1
+}
+if command -v pandoc >/dev/null && CHROME_BIN=$(trova_chrome); then
+  pandoc "$QUI/GUIDA-RAPIDA.md" -s --embed-resources --css "$QUI/guida-stile.css" \
+    --metadata pagetitle="Trascrivi Audio – Guida rapida" --metadata lang=it -o "$LAVORO/guida.html"
+  "$CHROME_BIN" --headless --no-sandbox --disable-gpu --no-pdf-header-footer \
+    --print-to-pdf="$LAVORO/guida.pdf" "file://$LAVORO/guida.html" 2>/dev/null
+  [ -s "$LAVORO/guida.pdf" ] || { echo "Creazione del PDF non riuscita." >&2; exit 1; }
+  mv "$LAVORO/guida.pdf" "$GUIDA_PDF"
+  echo "Guida rapida.pdf rigenerata."
+elif [ -e "$GUIDA_PDF" ]; then
+  echo "ATTENZIONE: pandoc o Chrome non trovati, uso «Guida rapida.pdf» esistente (potrebbe non essere aggiornata)." >&2
+else
+  echo "Servono pandoc e Chrome (o Chromium) per creare «Guida rapida.pdf»." >&2
+  exit 1
+fi
+
 # --- File dell'applicazione da mettere nell'archivio
 mkdir -p "$LAVORO/app"
 cp "$QUI/Trascrivi-Audio.command" "$QUI/Applica-Correzioni.command" "$LAVORO/app/"
-cp "$QUI/GUIDA-RAPIDA.md" "$LAVORO/app/Guida rapida.txt"
+cp "$GUIDA_PDF" "$LAVORO/app/Guida rapida.pdf"
 cp "$QUI/LEGGIMI.md" "$LAVORO/app/Istruzioni complete.txt"
 echo "$VERSIONE" > "$LAVORO/app/versione.txt"
 chmod +x "$LAVORO/app/"*.command
