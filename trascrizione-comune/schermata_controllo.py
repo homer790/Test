@@ -35,8 +35,12 @@ ultimo_contatto = [None]
 
 
 def apri(percorso_o_url):
-    if platform.system() == "Darwin":
+    """Apre un indirizzo nel browser o un file con il programma predefinito del sistema."""
+    sistema = platform.system()
+    if sistema == "Darwin":
         subprocess.run(["open", percorso_o_url], check=False)
+    elif sistema == "Windows" and not percorso_o_url.startswith("http"):
+        os.startfile(percorso_o_url)  # noqa: S606 — file del progetto, scelto dal programma
     else:
         webbrowser.open(percorso_o_url)
 
@@ -415,7 +419,9 @@ $("#salva").addEventListener("click", async () => {
     const x = r.risultato;
     stato(`Salvato. Corrette: ${x.corrette}, confermate: ${x.confermate}, ancora da verificare: ${x.rimaste}. ` +
           `Trascrizione corretta e dizionario aggiornati.`, "ok");
-  } catch (e) { stato("Salvataggio non riuscito: " + e.message, "errore"); aggiornaConteggi(); }
+  } catch (e) {  // prima i conteggi, poi l'errore: altrimenti «Modifiche non salvate» lo coprirebbe
+    aggiornaConteggi(); stato("Salvataggio non riuscito: " + e.message, "errore");
+  }
 });
 
 $("#annulla").addEventListener("click", async () => {

@@ -56,9 +56,10 @@ sed "s/@VERSIONE@/$VERSIONE/g" "$QUI/app/Info.plist" > "$APP/Contents/Info.plist
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 cp "$QUI/app/TrascriviAudio" "$APP/Contents/MacOS/TrascriviAudio"
 cp "$QUI/app/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
-cp "$QUI/programma/Trascrivi-Audio.command" "$QUI/programma/comune.sh" "$QUI/programma/progetti.py" \
-   "$QUI/programma/trascrivi_dubbi.py" "$QUI/programma/schermata_controllo.py" \
-   "$QUI/programma/applica_correzioni.py" "$APP/Contents/Resources/programma/"
+COMUNE="$QUI/../trascrizione-comune"   # file Python in comune con la versione Windows
+cp "$QUI/programma/Trascrivi-Audio.command" "$QUI/programma/comune.sh" "$COMUNE/progetti.py" \
+   "$COMUNE/trascrivi_dubbi.py" "$COMUNE/schermata_controllo.py" \
+   "$COMUNE/applica_correzioni.py" "$APP/Contents/Resources/programma/"
 cp "$GUIDA_PDF" "$APP/Contents/Resources/Guida rapida.pdf"
 echo "$VERSIONE" > "$APP/Contents/Resources/versione.txt"
 chmod 755 "$APP/Contents/MacOS/TrascriviAudio" "$APP/Contents/Resources/programma/Trascrivi-Audio.command"

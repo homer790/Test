@@ -279,7 +279,8 @@ trascrivi_progetto() {
   echo "Audio:        $(basename "$audio")"
   echo "Non chiudere questa finestra: qui vedi l'avanzamento della trascrizione."
 
-  "$VENV/bin/python" "$QUI/trascrivi_dubbi.py" "$audio" "$trascrizione" "$controllo" "$dati" "$clip" \
+  # I modelli sono già sul computer: durante la trascrizione nessun collegamento a internet
+  HF_HUB_OFFLINE=1 "$VENV/bin/python" "$QUI/trascrivi_dubbi.py" "$audio" "$trascrizione" "$controllo" "$dati" "$clip" \
     || errore "La trascrizione non è riuscita."
   progetto stato trascritto
 

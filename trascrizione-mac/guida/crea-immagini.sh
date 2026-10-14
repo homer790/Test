@@ -67,7 +67,7 @@ PY
 CONTROLLO="$DEMO/000_IntervistaRossi/000_IntervistaRossi_controllo.txt"
 PORTA=8790
 NON_APRIRE_BROWSER=1 PORTA=$PORTA HOME="$DEMO" PYTHONDONTWRITEBYTECODE=1 \
-  python3 "$QUI/../programma/schermata_controllo.py" "$CONTROLLO" > "$DEMO/server.log" 2>&1 &
+  python3 "$QUI/../../trascrizione-comune/schermata_controllo.py" "$CONTROLLO" > "$DEMO/server.log" 2>&1 &
 for _ in 1 2 3 4 5 6 7 8 9 10; do grep -q "http://" "$DEMO/server.log" 2>/dev/null && break; sleep 0.5; done
 URL=$(grep -o 'http://[^ ]*' "$DEMO/server.log")
 TOKEN=${URL##*t=}

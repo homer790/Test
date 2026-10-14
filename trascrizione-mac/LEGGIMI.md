@@ -7,7 +7,8 @@
 > Scrivania e apre il menu principale. Per aggiornare si fa lo stesso con lo ZIP nuovo.
 
 L'audio non lascia mai il computer. Da internet si scaricano solo Python (se manca), Whisper
-(circa 300 MB) e i modelli (circa 4,5 GB), una volta sola.
+(circa 300 MB) e i modelli (circa 4,5 GB), una volta sola. Durante la trascrizione il programma
+non si collega a internet (`HF_HUB_OFFLINE=1`) e non invia statistiche (`HF_HUB_DISABLE_TELEMETRY=1`).
 
 ## Come funziona
 
@@ -59,15 +60,18 @@ L'audio non lascia mai il computer. Da internet si scaricano solo Python (se man
 | `app/icona.svg`, `app/icona.png`, `app/AppIcon.icns` | icona: disegno, immagine 1024×1024 (`node app/crea-icona.js`), formato Mac |
 | `programma/Trascrivi-Audio.command` | il programma: preparazione, menu, progetti, trascrizione, disinstallazione |
 | `programma/comune.sh` | finestre di dialogo, menu, scelta del progetto, percorsi |
-| `programma/progetti.py` | progetti: `elenco-progetti.json` (file generale), `progetto-in-corso.json` (temporaneo), cartelle, spostamento dalle versioni precedenti |
-| `programma/trascrivi_dubbi.py` | trascrizione con i 4 ascolti, segni, ritagli, dizionario |
-| `programma/schermata_controllo.py` | schermata di controllo (server locale + pagina) |
-| `programma/applica_correzioni.py` | applica le correzioni: trascrizione corretta, dizionario, esempi |
+| `../trascrizione-comune/progetti.py` | progetti: `elenco-progetti.json` (file generale), `progetto-in-corso.json` (temporaneo), cartelle, spostamento dalle versioni precedenti |
+| `../trascrizione-comune/trascrivi_dubbi.py` | trascrizione con i 4 ascolti, segni, ritagli, dizionario |
+| `../trascrizione-comune/schermata_controllo.py` | schermata di controllo (server locale + pagina) |
+| `../trascrizione-comune/applica_correzioni.py` | applica le correzioni: trascrizione corretta, dizionario, esempi |
 | `guida/GUIDA-RAPIDA.md` | la guida (diventa `Guida rapida.pdf`) |
 | `guida/illustrazioni.html` | le illustrazioni delle finestre di macOS (stile Sequoia) |
 | `guida/crea-immagini.sh` + `.js` | crea `guida/immagini/*.png`: illustrazioni e immagini reali della schermata di controllo su un progetto dimostrativo |
 | `crea-installatore.sh` | crea `Guida rapida.pdf` e `dist/TrascriviAudio.zip` |
 | `test/` | prove automatiche (vedi sotto) |
+
+I file Python sono nella cartella `trascrizione-comune`, in comune con la versione per Windows
+(`../trascrizione-windows`): `crea-installatore.sh` li copia dentro l'app.
 
 **Per creare lo ZIP:**
 

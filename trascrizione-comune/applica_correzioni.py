@@ -13,7 +13,10 @@ import re
 import shutil
 import sys
 
-SUPPORTO = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "TrascriviAudio")
+if sys.platform == "win32":
+    SUPPORTO = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "TrascriviAudio")
+else:
+    SUPPORTO = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "TrascriviAudio")
 DIZIONARIO = os.environ.get("DIZIONARIO") or os.path.join(SUPPORTO, "dizionario.txt")
 ESEMPI = os.environ.get("ESEMPI") or os.path.join(SUPPORTO, "esempi")
 RIGA_PAROLA = re.compile(r"^\s*PAROLA\s+(\d+)\s*:(.*)$")

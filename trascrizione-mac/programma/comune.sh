@@ -7,6 +7,7 @@ export DIZIONARIO="$SUPPORTO/dizionario.txt"   # dizionario personale, comune a 
 export ESEMPI="$SUPPORTO/esempi"
 # Progetti in Documenti/Trascrivi Audio/Progetti (visibili nel Finder, al sicuro negli aggiornamenti)
 export PYTHONDONTWRITEBYTECODE=1   # niente file di cache di Python dentro l'app in Applicazioni
+export HF_HUB_DISABLE_TELEMETRY=1  # nessuna statistica inviata durante i download dei modelli
 export CARTELLA_DOCUMENTI="${CARTELLA_DOCUMENTI:-$HOME/Documents/Trascrivi Audio}"
 export CARTELLA_PROGETTI="${CARTELLA_PROGETTI:-$CARTELLA_DOCUMENTI/Progetti}"
 

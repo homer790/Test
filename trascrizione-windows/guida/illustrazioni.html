@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Illustrazioni della guida per Windows</title>
+<!--
+  Illustrazioni della Guida per Windows 11: finestre disegnate in stile Windows 11 (non sono
+  screenshot reali). Ogni <section class="scena" id="..."> diventa guida/immagini/<id>.png con
+  guida/crea-immagini.sh. In rosso: dove cliccare.
+-->
+<style>
+:root {
+  --accento: #0067c0; --rosso: #e3262c; --testo: #1b1b1b; --tenue: #5f5f5f;
+  --bordo: #e5e5e5; --pannello: #f3f3f3;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 20px; background: #777; color: var(--testo);
+  font-family: Inter, "Segoe UI", Arial, sans-serif; font-size: 13px; -webkit-font-smoothing: antialiased;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 20px;
+}
+.scena {
+  display: flex; justify-content: center; align-items: flex-start; position: relative; overflow: hidden;
+  width: 860px; padding: 36px 40px 62px;
+  background: radial-gradient(ellipse at 15% 0%, #dbe8f7 0%, transparent 60%),
+              radial-gradient(ellipse at 100% 100%, #c3d6ee 0%, transparent 60%), #d2e0f1;
+}
+.scena.scrivania {
+  display: block; padding: 0; height: 360px;
+  background: radial-gradient(ellipse at 60% 75%, #8fc1ff 0%, #3e7fe0 30%, transparent 62%),
+              radial-gradient(ellipse at 35% 90%, #2c63c9 0%, transparent 55%),
+              linear-gradient(180deg, #0a2a6b 0%, #123f97 55%, #0d2f74 100%);
+}
+/* ---------- finestre Windows 11 ---------- */
+.finestra {
+  background: #fff; border-radius: 8px; position: relative; flex: none;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .28), 0 0 0 1px rgba(0, 0, 0, .12);
+}
+.finestra > :first-child { border-top-left-radius: 8px; border-top-right-radius: 8px; }
+.finestra > :last-child { border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; }
+.titolo-finestra {
+  height: 32px; display: flex; align-items: center; gap: 8px; padding-left: 12px; font-size: 12px; color: #1b1b1b;
+  background: #fff;
+}
+.titolo-finestra img, .titolo-finestra svg { width: 16px; height: 16px; }
+.titolo-finestra .comandi { margin-left: auto; display: flex; height: 100%; }
+.titolo-finestra .comandi span { width: 46px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #333; }
+.pulsante {
+  white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; position: relative;
+  min-width: 96px; height: 32px; padding: 0 14px; border-radius: 4px; font-size: 13px;
+  background: #fdfdfd; color: var(--testo); border: 1px solid #d0d0d0; border-bottom-color: #b8b8b8;
+}
+.pulsante.predefinito { background: var(--accento); color: #fff; border-color: #005ba9; }
+.pulsanti { display: flex; gap: 8px; justify-content: flex-end; }
+/* ---------- finestre del programma (Finestre.cs) ---------- */
+.dialogo { width: 520px; }
+.dialogo .corpo { display: flex; gap: 16px; padding: 18px 20px 4px; }
+.dialogo .corpo img { width: 48px; height: 48px; flex: none; }
+.dialogo .testo { flex: 1; font-size: 13.5px; line-height: 1.45; }
+.dialogo .testo p { margin: 2px 0 10px; }
+.dialogo .piede { padding: 16px 20px 16px; }
+.opzione { display: flex; align-items: center; gap: 9px; margin: 6px 0 6px 6px; position: relative; width: fit-content; }
+.opzione i { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #8a8a8a; display: block; position: relative; background: #fff; flex: none; }
+.opzione.scelta i { border-color: var(--accento); background: var(--accento); }
+.opzione.scelta i::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: #fff; }
+.campo {
+  border: 1px solid #c8c8c8; border-bottom: 2px solid #8a8a8a; border-radius: 4px; height: 32px; padding: 6px 9px;
+  font-size: 13.5px; background: #fff; position: relative; margin: 2px 0 4px;
+}
+.campo.attivo { border-bottom-color: var(--accento); }
+/* ---------- Esplora file ---------- */
+.esplora { width: 700px; }
+.schede { height: 40px; background: #e9eef6; display: flex; align-items: flex-end; padding-left: 10px; position: relative; }
+.schede .scheda { background: #f9fbfe; height: 34px; border-radius: 8px 8px 0 0; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-size: 12.5px; min-width: 200px; }
+.schede .scheda svg { width: 16px; height: 16px; }
+.schede .comandi { position: absolute; right: 0; top: 0; height: 32px; display: flex; }
+.schede .comandi span { width: 46px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #333; }
+.indirizzo { background: #f9fbfe; display: flex; align-items: center; gap: 10px; padding: 6px 12px; font-size: 12.5px; color: #333; }
+.indirizzo .frecce { letter-spacing: 8px; color: #555; }
+.indirizzo .percorso { flex: 1; border: 1px solid #e3e3e3; background: #fff; border-radius: 4px; padding: 5px 10px; }
+.indirizzo .cerca { width: 180px; border: 1px solid #e3e3e3; background: #fff; border-radius: 4px; padding: 5px 10px; color: #777; }
+.barra-comandi { background: #f9fbfe; border-bottom: 1px solid #e8e8e8; padding: 6px 14px 8px; font-size: 12.5px; color: #333; display: flex; gap: 22px; }
+.esplora .corpo { display: flex; height: 280px; }
+.laterale { width: 170px; background: #f9fbfe; border-right: 1px solid #eee; padding: 8px 6px; font-size: 12.5px; }
+.laterale .voce { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 4px; color: #1b1b1b; }
+.laterale .voce.attiva { background: #e3ecf8; }
+.laterale .sep { height: 1px; background: #e8e8e8; margin: 6px 4px; }
+.laterale svg { width: 16px; height: 16px; flex: none; }
+.contenuto { flex: 1; padding: 18px 22px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 16px 26px; background: #fff; }
+.file { width: 104px; text-align: center; font-size: 12px; position: relative; overflow-wrap: anywhere; padding: 6px 2px; border-radius: 4px; }
+.file .grande { width: 64px; height: 64px; display: block; margin: 0 auto 6px; }
+.file.scelto { background: #cce4f7; }
+/* ---------- terminale (PowerShell in Windows Terminal) ---------- */
+.terminale { width: 640px; background: #0c0c0c; }
+.terminale .schede-t { height: 38px; background: #2b2b2b; display: flex; align-items: flex-end; padding-left: 8px; position: relative; }
+.terminale .schede-t .scheda { background: #0c0c0c; color: #e6e6e6; height: 32px; border-radius: 8px 8px 0 0; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-size: 12px; min-width: 190px; }
+.terminale .schede-t .comandi { position: absolute; right: 0; top: 0; height: 32px; display: flex; }
+.terminale .schede-t .comandi span { width: 46px; display: flex; align-items: center; justify-content: center; color: #ddd; font-size: 12px; }
+.terminale .schermo {
+  padding: 10px 14px 14px; height: 300px; overflow: hidden; color: #cccccc; background: #0c0c0c;
+  font-family: "DejaVu Sans Mono", Consolas, monospace; font-size: 11.5px; line-height: 1.5; white-space: pre;
+}
+.verde { color: #16c60c; }
+/* ---------- avvisi di sicurezza ---------- */
+.smartscreen {
+  width: 470px; background: #0063b1; color: #fff; padding: 26px 30px 22px; position: relative; flex: none;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .3);
+}
+.smartscreen h2 { font-size: 26px; font-weight: 400; margin: 0 0 16px; }
+.smartscreen p { font-size: 13.5px; line-height: 1.45; margin: 0 0 12px; }
+.smartscreen .link { text-decoration: underline; position: relative; display: inline-block; }
+.smartscreen .dati { font-size: 13.5px; line-height: 1.7; margin: 8px 0 0; }
+.smartscreen .pulsanti { margin-top: 70px; }
+.smartscreen .pulsante { background: transparent; color: #fff; border: 2px solid #fff; min-width: 110px; }
+.chiudi-x { position: absolute; right: 14px; top: 10px; font-size: 16px; }
+/* ---------- Impostazioni ---------- */
+.impostazioni { width: 780px; background: #f3f3f3; }
+.impostazioni .corpo { display: flex; height: 400px; }
+.impostazioni .nav { width: 210px; padding: 6px 8px; font-size: 13px; }
+.impostazioni .nav .utente { display: flex; gap: 10px; align-items: center; padding: 8px 8px 14px; font-size: 12px; }
+.impostazioni .nav .utente i { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(#b8c4d6, #8794a8); display: block; }
+.impostazioni .nav .cerca { background: #fff; border: 1px solid #e3e3e3; border-bottom: 1.5px solid #8a8a8a; border-radius: 4px; padding: 5px 10px; color: #777; margin-bottom: 8px; }
+.impostazioni .nav .voce { padding: 7px 10px; border-radius: 4px; display: flex; gap: 10px; align-items: center; position: relative; }
+.impostazioni .nav .voce.attiva { background: #eaeaea; }
+.impostazioni .nav .voce.attiva::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: var(--accento); }
+.impostazioni .nav .voce u { width: 16px; height: 16px; border-radius: 4px; display: block; text-decoration: none; }
+.impostazioni .pagina { flex: 1; padding: 6px 22px; }
+.impostazioni h2 { font-size: 26px; font-weight: 600; margin: 4px 0 16px; }
+.impostazioni h2 small { color: #6b6b6b; font-weight: 600; }
+.riga-app { background: #fbfbfb; border: 1px solid #e5e5e5; border-radius: 6px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; margin-bottom: 4px; font-size: 13px; position: relative; }
+.riga-app img, .riga-app .ic { width: 28px; height: 28px; border-radius: 6px; flex: none; }
+.riga-app .info { flex: 1; }
+.riga-app .info small { display: block; color: #6b6b6b; font-size: 11.5px; margin-top: 2px; }
+.riga-app .dim { color: #444; margin-right: 10px; }
+.puntini { width: 32px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 4px; position: relative; font-weight: 700; letter-spacing: 1px; }
+.menu-tendina { position: absolute; right: 6px; top: 46px; background: #fff; border-radius: 8px; padding: 4px; width: 170px; z-index: 4; box-shadow: 0 8px 24px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08); }
+.menu-tendina div { padding: 7px 12px; border-radius: 4px; position: relative; }
+.menu-tendina .spento { color: #a0a0a0; }
+/* ---------- menu contestuale ---------- */
+.menu-contestuale { position: absolute; z-index: 4; width: 250px; background: #fbfbfb; border-radius: 8px; padding: 4px; font-size: 12.5px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .22), 0 0 0 1px rgba(0, 0, 0, .1); }
+.menu-contestuale .icone { display: flex; gap: 14px; padding: 6px 10px 8px; border-bottom: 1px solid #e8e8e8; margin-bottom: 4px; color: #444; font-size: 14px; }
+.menu-contestuale .voce { padding: 6px 10px; border-radius: 4px; display: flex; gap: 10px; align-items: center; position: relative; }
+.menu-contestuale .sep { height: 1px; background: #e8e8e8; margin: 4px 0; }
+/* ---------- evidenziazioni ---------- */
+.clic { position: relative; }
+.clic::after { content: ""; position: absolute; inset: -6px; border: 3px solid var(--rosso); border-radius: 9px; pointer-events: none; }
+.etichetta {
+  position: absolute; z-index: 5; background: var(--rosso); color: #fff; font-weight: 700; font-size: 12.5px;
+  padding: 4px 10px; border-radius: 13px; white-space: nowrap; box-shadow: 0 3px 8px rgba(0, 0, 0, .25);
+  font-family: Inter, sans-serif; line-height: 1.25; text-align: center; text-decoration: none;
+}
+.etichetta.sotto { top: calc(100% + 13px); left: 50%; transform: translateX(-50%); }
+.etichetta.sopra { bottom: calc(100% + 13px); left: 50%; transform: translateX(-50%); }
+.etichetta.destra { left: calc(100% + 14px); top: 50%; transform: translateY(-50%); }
+.etichetta.sinistra { right: calc(100% + 14px); top: 50%; transform: translateY(-50%); }
+.etichetta::before { content: ""; position: absolute; border: 6px solid transparent; }
+.etichetta.sotto::before { bottom: 100%; left: 50%; margin-left: -6px; border-bottom-color: var(--rosso); }
+.etichetta.sopra::before { top: 100%; left: 50%; margin-left: -6px; border-top-color: var(--rosso); }
+.etichetta.destra::before { right: 100%; top: 50%; margin-top: -6px; border-right-color: var(--rosso); }
+.etichetta.sinistra::before { left: 100%; top: 50%; margin-top: -6px; border-left-color: var(--rosso); }
+.etichetta.libera::before { display: none; }
+/* ---------- Scrivania ---------- */
+.icona-scrivania { position: absolute; width: 92px; text-align: center; color: #fff; font-size: 12px; text-shadow: 0 1px 3px rgba(0,0,0,.7); padding: 4px 2px; }
+.icona-scrivania img, .icona-scrivania svg.g { width: 56px; height: 56px; display: block; margin: 0 auto 4px; }
+.freccia-collegamento { position: absolute; left: 20px; top: 40px; width: 18px; height: 18px; }
+.barra-applicazioni { position: absolute; left: 0; right: 0; bottom: 0; height: 48px; background: rgba(240, 244, 250, .82); backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center; gap: 10px; }
+.barra-applicazioni span { width: 36px; height: 36px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+.barra-applicazioni .ora { position: absolute; right: 14px; font-size: 11.5px; text-align: right; line-height: 1.3; width: auto; height: auto; color: #1b1b1b; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="cart" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd76b"/><stop offset="1" stop-color="#f5b83d"/></linearGradient>
+    <symbol id="cartella" viewBox="0 0 64 64">
+      <path d="M4 14a4 4 0 0 1 4-4h16l6 6h26a4 4 0 0 1 4 4v4H4z" fill="#e8a628"/>
+      <rect x="4" y="20" width="56" height="36" rx="4" fill="url(#cart)"/>
+    </symbol>
+    <symbol id="cartella-zip" viewBox="0 0 64 64">
+      <use href="#cartella"/>
+      <path d="M30 20v28" stroke="#6e6e73" stroke-width="5" stroke-dasharray="3 3"/>
+      <rect x="26" y="44" width="8" height="9" rx="2" fill="#555"/>
+    </symbol>
+    <symbol id="documento" viewBox="0 0 64 64">
+      <path d="M14 4h26l12 12v42a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z" fill="#fff" stroke="#c4c4c4"/>
+      <path d="M40 4v10a3 3 0 0 0 3 3h9" fill="#ececec" stroke="#c4c4c4"/>
+    </symbol>
+    <symbol id="pdf" viewBox="0 0 64 64">
+      <use href="#documento"/>
+      <rect x="16" y="40" width="32" height="13" rx="2" fill="#d13438"/>
+      <text x="32" y="50" font-size="9" text-anchor="middle" fill="#fff" font-family="Inter" font-weight="700">PDF</text>
+      <path d="M18 24h28M18 30h28" stroke="#c7c7c7" stroke-width="2.2"/>
+    </symbol>
+    <symbol id="audio" viewBox="0 0 64 64">
+      <use href="#documento"/>
+      <g stroke="#0067c0" stroke-width="3.2" stroke-linecap="round"><path d="M20 34v8M26 28v20M32 24v28M38 30v16M44 33v10"/></g>
+    </symbol>
+    <symbol id="testo" viewBox="0 0 64 64">
+      <use href="#documento"/>
+      <path d="M18 22h28M18 28h28M18 34h28M18 40h20M18 46h26" stroke="#9a9a9a" stroke-width="2.2"/>
+    </symbol>
+    <symbol id="script" viewBox="0 0 64 64">
+      <use href="#documento"/>
+      <circle cx="30" cy="38" r="11" fill="none" stroke="#5f5f5f" stroke-width="4" stroke-dasharray="4.4 3.2"/>
+      <circle cx="30" cy="38" r="5" fill="#5f5f5f"/>
+    </symbol>
+    <symbol id="powershell" viewBox="0 0 64 64">
+      <rect x="4" y="10" width="56" height="44" rx="6" fill="#1f3a6b"/>
+      <path d="M16 24l12 8-12 8" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M32 42h14" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="scudo" viewBox="0 0 64 64">
+      <path d="M32 4l24 9v17c0 15-10 26-24 30C18 56 8 45 8 30V13z" fill="#f2b200"/>
+      <path d="M32 18v20M32 44v4" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-home" viewBox="0 0 16 16"><path d="M2 7.5L8 2.5l6 5V14H10v-4H6v4H2z" fill="none" stroke="#c46a00" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+    <symbol id="i-desktop" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="9" rx="1.2" fill="#3a96dd"/><path d="M5 14h6" stroke="#3a96dd" stroke-width="1.5"/></symbol>
+    <symbol id="i-download" viewBox="0 0 16 16"><path d="M8 2v8M4.5 7L8 10.5 11.5 7M3 13.5h10" stroke="#1d8f3a" stroke-width="1.6" fill="none" stroke-linecap="round"/></symbol>
+    <symbol id="i-documenti" viewBox="0 0 16 16"><path d="M3.5 1.5h6l3 3v10h-9z" fill="#4f8fd8"/><path d="M9.5 1.5v3h3" fill="#a9cbf1"/></symbol>
+    <symbol id="i-musica" viewBox="0 0 16 16"><path d="M6 12V3l8-1.5v9" fill="none" stroke="#d6488c" stroke-width="1.5"/><circle cx="4.5" cy="12" r="2" fill="#d6488c"/><circle cx="12.5" cy="10.5" r="2" fill="#d6488c"/></symbol>
+    <symbol id="i-pc" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1" fill="none" stroke="#3a96dd" stroke-width="1.4"/><path d="M5 14h6M8 11v3" stroke="#3a96dd" stroke-width="1.4"/></symbol>
+  </defs>
+</svg>
+
+<!-- ===================================================================================== -->
+<!-- INSTALLAZIONE                                                                          -->
+<!-- ===================================================================================== -->
+
+<!-- 1. Tasto destro sullo ZIP → Estrai tutto -->
+<section class="scena" id="w01-estrai" style="padding-bottom:40px">
+  <div class="finestra esplora">
+    <div class="schede"><div class="scheda"><svg><use href="#i-download"/></svg>Download</div><div class="comandi"><span>—</span><span>☐</span><span>✕</span></div></div>
+    <div class="indirizzo"><span class="frecce">← → ↑</span><span class="percorso">› Questo PC › Download</span><span class="cerca">Cerca in Download</span></div>
+    <div class="barra-comandi"><span>⊕ Nuovo</span><span>✂</span><span>⧉</span><span>Ordina</span><span>Visualizza</span><span>…</span></div>
+    <div class="corpo">
+      <div class="laterale">
+        <div class="voce"><svg><use href="#i-home"/></svg>Home</div>
+        <div class="sep"></div>
+        <div class="voce"><svg><use href="#i-desktop"/></svg>Desktop</div>
+        <div class="voce attiva"><svg><use href="#i-download"/></svg>Download</div>
+        <div class="voce"><svg><use href="#i-documenti"/></svg>Documenti</div>
+        <div class="voce"><svg><use href="#i-musica"/></svg>Musica</div>
+        <div class="sep"></div>
+        <div class="voce"><svg><use href="#i-pc"/></svg>Questo PC</div>
+      </div>
+      <div class="contenuto">
+        <div class="file scelto clic"><svg class="grande"><use href="#cartella-zip"/></svg>TrascriviAudio-Windows.zip
+          <span class="etichetta sotto">1. Tasto destro</span></div>
+        <div class="file" style="opacity:.55"><svg class="grande"><use href="#pdf"/></svg>Fattura.pdf</div>
+      </div>
+    </div>
+  </div>
+  <div class="menu-contestuale" style="left:395px;top:205px">
+    <div class="icone"><span>✂</span><span>⧉</span><span>✎</span><span>⇪</span><span>🗑</span></div>
+    <div class="voce">📂 Apri</div>
+    <div class="voce clic" style="background:#e8eef7">🗜 Estrai tutto…<span class="etichetta destra">2. «Estrai tutto…»</span></div>
+    <div class="voce">☆ Aggiungi a Preferiti</div>
+    <div class="voce">🗜 Comprimi in un file ZIP</div>
+    <div class="voce">⧉ Copia come percorso</div>
+    <div class="voce">🔧 Proprietà</div>
+    <div class="sep"></div>
+    <div class="voce">⋯ Mostra altre opzioni</div>
+  </div>
+</section>
+
+<!-- 2. Estrai cartelle compresse -->
+<section class="scena" id="w02-estrai-dialogo">
+  <div class="finestra" style="width:600px">
+    <div class="titolo-finestra"><span style="font-size:14px">←</span>&nbsp;🗜 Estrai cartelle compresse (ZIP)<div class="comandi"><span>✕</span></div></div>
+    <div style="padding:14px 34px 6px">
+      <div style="font-size:18px;color:#1b4f9c;margin-bottom:20px">Seleziona una destinazione ed estrai i file</div>
+      <div style="font-size:13px;margin-bottom:6px">I file verranno estratti in questa cartella:</div>
+      <div style="display:flex;gap:8px"><div class="campo" style="flex:1">C:\Users\Mario\Downloads\TrascriviAudio-Windows</div><span class="pulsante">Sfoglia…</span></div>
+      <div style="display:flex;align-items:center;gap:8px;margin:16px 0 90px"><span style="width:16px;height:16px;border-radius:3px;background:#0067c0;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center">✓</span>Mostra i file estratti al termine</div>
+    </div>
+    <div class="pulsanti" style="padding:14px 18px;background:#f3f3f3;border-top:1px solid #e5e5e5"><span class="pulsante predefinito clic">Estrai<span class="etichetta sinistra">Clicca «Estrai»</span></span><span class="pulsante">Annulla</span></div>
+  </div>
+</section>
+
+<!-- 3. Doppio clic su «Installa Trascrivi Audio» -->
+<section class="scena" id="w03-installa">
+  <div class="finestra esplora">
+    <div class="schede"><div class="scheda"><svg><use href="#cartella"/></svg>Trascrivi Audio</div><div class="comandi"><span>—</span><span>☐</span><span>✕</span></div></div>
+    <div class="indirizzo"><span class="frecce">← → ↑</span><span class="percorso">› Download › TrascriviAudio-Windows › Trascrivi Audio</span><span class="cerca">Cerca</span></div>
+    <div class="barra-comandi"><span>⊕ Nuovo</span><span>✂</span><span>⧉</span><span>Ordina</span><span>Visualizza</span><span>…</span></div>
+    <div class="corpo">
+      <div class="laterale">
+        <div class="voce"><svg><use href="#i-home"/></svg>Home</div>
+        <div class="sep"></div>
+        <div class="voce"><svg><use href="#i-desktop"/></svg>Desktop</div>
+        <div class="voce attiva"><svg><use href="#i-download"/></svg>Download</div>
+        <div class="voce"><svg><use href="#i-documenti"/></svg>Documenti</div>
+        <div class="voce"><svg><use href="#i-musica"/></svg>Musica</div>
+        <div class="sep"></div>
+        <div class="voce"><svg><use href="#i-pc"/></svg>Questo PC</div>
+      </div>
+      <div class="contenuto">
+        <div class="file"><svg class="grande"><use href="#cartella"/></svg>programma</div>
+        <div class="file"><svg class="grande"><use href="#pdf"/></svg>Guida rapida</div>
+        <div class="file clic"><svg class="grande"><use href="#script"/></svg>Installa Trascrivi Audio
+          <span class="etichetta sotto">Doppio clic</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. SmartScreen: Ulteriori informazioni -->
+<section class="scena" id="w04-smartscreen">
+  <div class="smartscreen">
+    <span class="chiudi-x">✕</span>
+    <h2>Windows ha protetto il PC</h2>
+    <p>Microsoft Defender SmartScreen ha impedito l'avvio di un'app non riconosciuta. L'esecuzione di questa app potrebbe costituire un rischio per il PC.</p>
+    <p><span class="link clic">Ulteriori informazioni<span class="etichetta destra">1. Clicca qui</span></span></p>
+    <div class="pulsanti"><span class="pulsante">Non eseguire</span></div>
+  </div>
+</section>
+
+<!-- 5. SmartScreen: Esegui comunque -->
+<section class="scena" id="w05-esegui-comunque">
+  <div class="smartscreen">
+    <span class="chiudi-x">✕</span>
+    <h2>Windows ha protetto il PC</h2>
+    <p>Microsoft Defender SmartScreen ha impedito l'avvio di un'app non riconosciuta. L'esecuzione di questa app potrebbe costituire un rischio per il PC.</p>
+    <div class="dati">App: &nbsp;Installa Trascrivi Audio.cmd<br>Autore: &nbsp;Autore sconosciuto</div>
+    <div class="pulsanti" style="margin-top:46px"><span class="pulsante clic">Esegui comunque<span class="etichetta sotto">2. «Esegui comunque»</span></span><span class="pulsante">Non eseguire</span></div>
+  </div>
+</section>
+
+<!-- 6. In alternativa: Avviso di sicurezza → Esegui -->
+<section class="scena" id="w06-avviso-sicurezza">
+  <div class="finestra" style="width:520px">
+    <div class="titolo-finestra">Apri file - Avviso di sicurezza<div class="comandi"><span>✕</span></div></div>
+    <div style="padding:12px 22px 4px;font-size:13.5px">
+      <div style="font-weight:600;margin-bottom:12px">Impossibile verificare l'autore. Eseguire il software?</div>
+      <div style="display:grid;grid-template-columns:70px 1fr;gap:5px 10px;font-size:12.5px;margin-left:8px">
+        <span>Nome:</span><span>…\Trascrivi Audio\Installa Trascrivi Audio.cmd</span>
+        <span>Autore:</span><span><b>Autore sconosciuto</b></span>
+        <span>Tipo:</span><span>Script di comandi di Windows</span>
+      </div>
+      <div class="pulsanti" style="margin:16px 0 10px"><span class="pulsante predefinito clic">Esegui<span class="etichetta sinistra">Clicca «Esegui»</span></span><span class="pulsante">Annulla</span></div>
+      <div style="display:flex;gap:10px;align-items:flex-start;border-top:1px solid #e5e5e5;padding:10px 0 12px;font-size:11.5px;color:#444"><svg style="width:30px;height:30px;flex:none"><use href="#scudo"/></svg>Questo file non ha una firma digitale valida che ne verifichi l'autore. Eseguire solo software di autori considerati attendibili.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. Installazione automatica nella finestra di PowerShell -->
+<section class="scena" id="w07-powershell">
+  <div class="finestra terminale">
+    <div class="schede-t"><div class="scheda"><svg style="width:14px;height:14px"><use href="#powershell"/></svg>Trascrivi Audio</div><div class="comandi"><span>—</span><span>☐</span><span>✕</span></div></div>
+    <div class="schermo">Copio Trascrivi Audio in C:\Users\Mario\AppData\Local\Programs\Trascrivi Audio ...
+Trascrivi Audio 2026.10.14
+Questa finestra mostra l'avanzamento: lasciala aperta mentre usi il programma.
+Scarico Python 3.12.15 portatile (circa 44 MB)...
+######################################################################## 100,0%
+<span class="verde">Python portatile installato.</span>
+Installo Whisper (circa 300 MB, alcuni minuti)...
+Successfully installed ctranslate2-4.8.3 faster-whisper-1.2.1 msvc-runtime-14.44 ...
+<span class="verde">Whisper installato.</span>
+Scarico il modello large-v3 (una volta sola, può volerci un po')...
+model.bin:  61%|██████████████▋         | 1.88G/3.09G [02:41&lt;01:43, 11.6MB/s]</div>
+  </div>
+  <div class="etichetta libera" style="left:50%;bottom:14px;transform:translateX(-50%)">Attendi: fa tutto da solo. Non chiudere questa finestra</div>
+</section>
+
+<!-- 8. Installazione completata -->
+<section class="scena" id="w08-completata">
+  <div class="finestra dialogo" style="width:560px">
+    <div class="titolo-finestra"><img src="icona.png" alt="">Trascrivi Audio<div class="comandi"><span>✕</span></div></div>
+    <div class="corpo"><img src="icona.png" alt="">
+      <div class="testo">
+        <p>Installazione completata.</p>
+        <p>• Sulla Scrivania e nel menu Start trovi «Trascrivi Audio»: aprilo ogni volta che vuoi usare il programma.<br>
+        • I progetti verranno salvati in:<br>&nbsp;&nbsp;&nbsp;C:\Users\Mario\Documents\Trascrivi Audio\Progetti<br>
+        • La guida è in:<br>&nbsp;&nbsp;&nbsp;C:\Users\Mario\Documents\Trascrivi Audio\Guida rapida.pdf</p>
+        <p>Ora si apre il menu principale.</p>
+      </div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante predefinito clic">OK<span class="etichetta sinistra">Clicca «OK»</span></span></div>
+  </div>
+</section>
+
+<!-- 9. Icona sulla Scrivania -->
+<section class="scena scrivania" id="w09-scrivania">
+  <div class="icona-scrivania clic" style="left:22px;top:20px">
+    <img src="icona.png" alt="">
+    <svg class="freccia-collegamento" viewBox="0 0 18 18"><rect width="18" height="18" rx="3" fill="#fff"/><path d="M5 13l7-7M7 6h5v5" stroke="#0067c0" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+    Trascrivi Audio
+    <span class="etichetta destra">D'ora in poi: doppio clic qui</span>
+  </div>
+  <div class="icona-scrivania" style="left:22px;top:122px;opacity:.9"><svg class="g"><use href="#cartella"/></svg>Lavoro</div>
+  <div class="barra-applicazioni">
+    <span style="background:#fff"><svg style="width:22px;height:22px" viewBox="0 0 22 22"><rect x="1" y="1" width="9" height="9" fill="#0078d4"/><rect x="12" y="1" width="9" height="9" fill="#0078d4"/><rect x="1" y="12" width="9" height="9" fill="#0078d4"/><rect x="12" y="12" width="9" height="9" fill="#0078d4"/></svg></span>
+    <span><svg style="width:24px;height:24px"><use href="#cartella"/></svg></span>
+    <span><img src="icona.png" alt="" style="width:26px;height:26px"></span>
+    <span class="ora">10:30<br>14/10/2026</span>
+  </div>
+</section>
+
+<!-- ===================================================================================== -->
+<!-- NUOVO PROGETTO                                                                         -->
+<!-- ===================================================================================== -->
+
+<section class="scena" id="w11-menu-nuovo">
+  <div class="finestra dialogo" style="width:440px">
+    <div class="titolo-finestra"><img src="icona.png" alt="">Trascrivi Audio<div class="comandi"><span>✕</span></div></div>
+    <div class="corpo"><img src="icona.png" alt="">
+      <div class="testo"><p>Cosa vuoi fare?</p>
+        <div class="opzione scelta clic"><i></i>Nuovo progetto<span class="etichetta destra">1. Scegli</span></div>
+        <div class="opzione"><i></i>Apri un progetto</div>
+        <div class="opzione"><i></i>Guida rapida</div>
+        <div class="opzione"><i></i>Disinstalla Trascrivi Audio</div>
+      </div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante">Esci</span><span class="pulsante predefinito clic">Avanti<span class="etichetta sotto">2. Clicca «Avanti»</span></span></div>
+  </div>
+</section>
+
+<section class="scena" id="w12-nome">
+  <div class="finestra dialogo">
+    <div class="titolo-finestra"><img src="icona.png" alt="">Trascrivi Audio<div class="comandi"><span>✕</span></div></div>
+    <div class="corpo"><img src="icona.png" alt="">
+      <div class="testo"><p>Scrivi il nome del nuovo progetto:</p>
+        <div class="campo attivo clic">Intervista Rossi<span class="etichetta sotto">1. Scrivi il nome</span></div></div>
+    </div>
+    <div class="piede pulsanti" style="padding-top:34px"><span class="pulsante">Annulla</span><span class="pulsante predefinito clic">Avanti<span class="etichetta destra" style="left:auto;right:0;top:calc(100% + 13px);transform:none">2. Clicca «Avanti»</span></span></div>
+  </div>
+</section>
+
+<section class="scena" id="w13-file-audio">
+  <div class="finestra esplora" style="width:720px">
+    <div class="titolo-finestra">Scegli il file audio (o video) da trascrivere<div class="comandi"><span>✕</span></div></div>
+    <div class="indirizzo"><span class="frecce">← → ↑</span><span class="percorso">› Questo PC › Download</span><span class="cerca">Cerca in Download</span></div>
+    <div class="corpo" style="height:200px">
+      <div class="laterale">
+        <div class="voce"><svg><use href="#i-home"/></svg>Home</div>
+        <div class="sep"></div>
+        <div class="voce"><svg><use href="#i-desktop"/></svg>Desktop</div>
+        <div class="voce attiva"><svg><use href="#i-download"/></svg>Download</div>
+        <div class="voce"><svg><use href="#i-documenti"/></svg>Documenti</div>
+        <div class="voce"><svg><use href="#i-musica"/></svg>Musica</div>
+      </div>
+      <div class="contenuto">
+        <div class="file scelto clic"><svg class="grande"><use href="#audio"/></svg>intervista-rossi.m4a<span class="etichetta sotto">1. Seleziona l'audio</span></div>
+        <div class="file"><svg class="grande"><use href="#audio"/></svg>riunione.mp3</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#f3f3f3;border-top:1px solid #e5e5e5">
+      <span>Nome file:</span><div class="campo" style="flex:1;margin:0">intervista-rossi.m4a</div>
+      <div class="campo" style="width:150px;margin:0">Audio e video ⌄</div>
+    </div>
+    <div class="pulsanti" style="padding:0 16px 14px;background:#f3f3f3"><span class="pulsante predefinito clic">Apri<span class="etichetta sinistra">2. Clicca «Apri»</span></span><span class="pulsante">Annulla</span></div>
+  </div>
+</section>
+
+<section class="scena" id="w14-avanzamento">
+  <div class="finestra terminale">
+    <div class="schede-t"><div class="scheda"><svg style="width:14px;height:14px"><use href="#powershell"/></svg>Trascrivi Audio</div><div class="comandi"><span>—</span><span>☐</span><span>✕</span></div></div>
+    <div class="schermo" style="height:270px">Copio l'audio nel progetto...
+
+Progetto:     000 – Intervista Rossi
+Cartella:     C:\Users\Mario\Documents\Trascrivi Audio\Progetti\000_IntervistaRossi
+Audio:        000_IntervistaRossi_audio.m4a
+Non chiudere questa finestra: qui vedi l'avanzamento della trascrizione.
+
+[1/4] Carico il modello large-v3 ...
+[1/4] large-v3:  100.0% (00:27:45 di 00:27:45)
+[1/4] large-v3 completato in 00:31:12.
+
+[2/4] Carico il modello medium ...
+[2/4] medium:   46.3% (00:12:51 di 00:27:45)</div>
+  </div>
+  <div class="etichetta libera" style="left:50%;bottom:14px;transform:translateX(-50%)">Qui vedi a che punto è la trascrizione</div>
+</section>
+
+<section class="scena" id="w15-completata">
+  <div class="finestra dialogo">
+    <div class="titolo-finestra"><img src="icona.png" alt="">Trascrivi Audio<div class="comandi"><span>✕</span></div></div>
+    <div class="corpo"><img src="icona.png" alt="">
+      <div class="testo">
+        <p>Trascrizione del progetto «Intervista Rossi» completata.</p>
+        <p>Parole da riverificare: 23 su 3.412<br>(prima del riascolto erano 61, 38 risolte automaticamente)</p>
+        <p>Ora si apre nel browser la schermata di controllo delle parole: ascolta ogni ritaglio, correggi la parola e spunta «Confermata», poi premi «Salva».</p>
+      </div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante predefinito clic">OK<span class="etichetta sinistra">Clicca «OK»</span></span></div>
+  </div>
+</section>
+
+<section class="scena" id="w16-cartella-progetto">
+  <div class="finestra esplora" style="width:740px">
+    <div class="schede"><div class="scheda"><svg><use href="#cartella"/></svg>000_IntervistaRossi</div><div class="comandi"><span>—</span><span>☐</span><span>✕</span></div></div>
+    <div class="indirizzo"><span class="frecce">← → ↑</span><span class="percorso">› Documenti › Trascrivi Audio › Progetti › 000_IntervistaRossi</span></div>
+    <div class="corpo" style="height:250px">
+      <div class="laterale">
+        <div class="voce"><svg><use href="#i-home"/></svg>Home</div>
+        <div class="sep"></div>
+        <div class="voce"><svg><use href="#i-desktop"/></svg>Desktop</div>
+        <div class="voce"><svg><use href="#i-download"/></svg>Download</div>
+        <div class="voce attiva"><svg><use href="#i-documenti"/></svg>Documenti</div>
+        <div class="voce"><svg><use href="#i-musica"/></svg>Musica</div>
+      </div>
+      <div class="contenuto" style="gap:14px 18px">
+        <div class="file"><svg class="grande"><use href="#audio"/></svg>…_audio.m4a</div>
+        <div class="file"><svg class="grande"><use href="#testo"/></svg>…_trascrizione.txt</div>
+        <div class="file clic"><svg class="grande"><use href="#testo"/></svg>…_trascrizione<wbr>_corretta.txt<span class="etichetta sotto">Il testo corretto</span></div>
+        <div class="file"><svg class="grande"><use href="#testo"/></svg>…_controllo.txt</div>
+        <div class="file"><svg class="grande"><use href="#cartella"/></svg>…_clip</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================================== -->
+<!-- APRIRE UN PROGETTO                                                                     -->
+<!-- ===================================================================================== -->
+
+<section class="scena" id="w17-menu-apri">
+  <div class="finestra dialogo" style="width:440px">
+    <div class="titolo-finestra"><img src="icona.png" alt="">Trascrivi Audio<div class="comandi"><span>✕</span></div></div>
+    <div class="corpo"><img src="icona.png" alt="">
+      <div class="testo"><p>Cosa vuoi fare?</p>
+        <div class="opzione"><i></i>Nuovo progetto</div>
+        <div class="opzione scelta clic"><i></i>Apri un progetto<span class="etichetta destra">1. Scegli</span></div>
+        <div class="opzione"><i></i>Guida rapida</div>
+        <div class="opzione"><i></i>Disinstalla Trascrivi Audio</div>
+      </div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante">Esci</span><span class="pulsante predefinito clic">Avanti<span class="etichetta sotto">2. Clicca «Avanti»</span></span></div>
+  </div>
+</section>
+
+<section class="scena" id="w18-lista">
+  <div class="finestra dialogo" style="width:440px">
+    <div class="titolo-finestra"><img src="icona.png" alt="">Trascrivi Audio<div class="comandi"><span>✕</span></div></div>
+    <div class="corpo"><img src="icona.png" alt="">
+      <div class="testo"><p>Scegli il progetto da aprire:</p>
+        <div class="opzione scelta clic"><i></i>Intervista Rossi<span class="etichetta destra">1. Scegli il progetto</span></div>
+        <div class="opzione"><i></i>Riunione di ottobre</div>
+        <div class="opzione"><i></i>Lezione di storia</div>
+      </div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante">Annulla</span><span class="pulsante predefinito clic">Avanti<span class="etichetta sotto">2. Clicca «Avanti»</span></span></div>
+  </div>
+</section>
+
+<section class="scena" id="w19-cosa-fare">
+  <div class="finestra dialogo" style="width:600px">
+    <div class="titolo-finestra"><img src="icona.png" alt="">Trascrivi Audio<div class="comandi"><span>✕</span></div></div>
+    <div class="corpo"><img src="icona.png" alt=""><div class="testo"><p>Progetto «Intervista Rossi»: cosa vuoi fare?</p></div></div>
+    <div class="piede pulsanti" style="padding-bottom:50px"><span class="pulsante">Annulla</span><span class="pulsante clic">Rielabora la trascrizione<span class="etichetta sotto">Rifà la trascrizione</span></span><span class="pulsante predefinito clic">Analisi delle parole<span class="etichetta sotto" style="left:auto;right:-6px;transform:none">Controlla le parole</span></span></div>
+  </div>
+</section>
+
+<section class="scena" id="w20-rielabora">
+  <div class="finestra dialogo">
+    <div class="titolo-finestra"><img src="icona.png" alt="">Trascrivi Audio<div class="comandi"><span>✕</span></div></div>
+    <div class="corpo"><img src="icona.png" alt="">
+      <div class="testo"><p>Rielaborare la trascrizione del progetto «Intervista Rossi»?</p>
+        <p>La trascrizione e le parole da controllare verranno rifatte da capo: le correzioni fatte in questo progetto andranno perse (il tuo dizionario personale resta e verrà usato).</p></div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante">Annulla</span><span class="pulsante predefinito clic">Rielabora<span class="etichetta sinistra" style="right:calc(100% + 120px)">Per confermare</span></span></div>
+  </div>
+</section>
+
+<!-- ===================================================================================== -->
+<!-- MENU E DISINSTALLAZIONE                                                                -->
+<!-- ===================================================================================== -->
+
+<section class="scena" id="w21-menu">
+  <div class="finestra dialogo" style="width:440px">
+    <div class="titolo-finestra"><img src="icona.png" alt="">Trascrivi Audio<div class="comandi"><span>✕</span></div></div>
+    <div class="corpo"><img src="icona.png" alt="">
+      <div class="testo"><p>Cosa vuoi fare?</p>
+        <div class="opzione"><i></i>Nuovo progetto</div>
+        <div class="opzione"><i></i>Apri un progetto</div>
+        <div class="opzione"><i></i>Guida rapida</div>
+        <div class="opzione scelta clic"><i></i>Disinstalla Trascrivi Audio<span class="etichetta destra">Per disinstallare</span></div>
+      </div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante clic">Esci<span class="etichetta sotto">Chiude il programma</span></span><span class="pulsante predefinito">Avanti</span></div>
+  </div>
+</section>
+
+<section class="scena" id="w22-disinstalla">
+  <div class="finestra dialogo" style="width:640px">
+    <div class="titolo-finestra"><img src="icona.png" alt="">Trascrivi Audio<div class="comandi"><span>✕</span></div></div>
+    <div class="corpo"><img src="icona.png" alt="">
+      <div class="testo">
+        <p>Vuoi disinstallare Trascrivi Audio?</p>
+        <p>Verranno cancellati il programma, le icone sulla Scrivania e nel menu Start, Whisper con i modelli (circa 5 GB) e il dizionario delle tue correzioni.</p>
+        <p>I progetti (audio e trascrizioni) sono in:<br>C:\Users\Mario\Documents\Trascrivi Audio<br>puoi conservarli o cancellarli.</p>
+      </div>
+    </div>
+    <div class="piede pulsanti" style="padding-bottom:50px"><span class="pulsante">Annulla</span><span class="pulsante clic">Cancella anche i progetti<span class="etichetta sotto">Cancella tutto</span></span><span class="pulsante predefinito clic">Conserva i progetti<span class="etichetta sotto" style="left:auto;right:-6px;transform:none">Tiene le trascrizioni</span></span></div>
+  </div>
+</section>
+
+<section class="scena" id="w23-app-installate">
+  <div class="finestra impostazioni">
+    <div class="titolo-finestra" style="background:#f3f3f3">← &nbsp;Impostazioni<div class="comandi"><span>—</span><span>☐</span><span>✕</span></div></div>
+    <div class="corpo">
+      <div class="nav">
+        <div class="utente"><i></i><div><b>Mario Rossi</b><br>Account locale</div></div>
+        <div class="cerca">Trova un'impostazione</div>
+        <div class="voce"><u style="background:#3a96dd"></u>Sistema</div>
+        <div class="voce"><u style="background:#2e7bd6"></u>Bluetooth e dispositivi</div>
+        <div class="voce"><u style="background:#5a6ee0"></u>Rete e Internet</div>
+        <div class="voce"><u style="background:#e48a2b"></u>Personalizzazione</div>
+        <div class="voce attiva"><u style="background:#7a5af5"></u>App</div>
+        <div class="voce"><u style="background:#2fa87b"></u>Account</div>
+        <div class="voce"><u style="background:#37a0e0"></u>Data/ora e lingua</div>
+      </div>
+      <div class="pagina">
+        <h2><small>App &nbsp;›&nbsp;</small> App installate</h2>
+        <div class="riga-app"><span class="ic" style="background:#e8a628"></span><div class="info">Calcolatrice<small>Microsoft Corporation</small></div><span class="dim">48,0 kB</span><span class="puntini">···</span></div>
+        <div class="riga-app"><img src="icona.png" alt=""><div class="info"><b style="font-weight:600">Trascrivi Audio</b><small>2026.10.14 &nbsp;|&nbsp; Trascrivi Audio &nbsp;|&nbsp; 14/10/2026</small></div><span class="dim">5,05 GB</span>
+          <span class="puntini clic">···<span class="etichetta sopra">1. Clicca «···»</span></span>
+          <div class="menu-tendina"><div class="spento">Modifica</div><div class="clic" style="background:#f0f0f0">Disinstalla<span class="etichetta sotto">2. «Disinstalla»</span></div></div>
+        </div>
+        <div class="riga-app"><span class="ic" style="background:#0067c0"></span><div class="info">Microsoft Edge<small>Microsoft Corporation</small></div><span class="dim">—</span><span class="puntini">···</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
