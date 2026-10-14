@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Illustrazioni della guida</title>
+<!--
+  Illustrazioni della Guida rapida: finestre disegnate in stile macOS 15 Sequoia (non sono
+  screenshot reali). Ogni <section class="scena" id="..."> diventa guida/immagini/<id>.png
+  con guida/crea-immagini.sh. In rosso: dove cliccare.
+-->
+<style>
+:root {
+  --blu: #0a7aff; --rosso: #e3262c; --testo: #1d1d1f; --tenue: #6e6e73;
+  --bordo: #d1d1d6; --pannello: #f5f5f7; --barra: #ececec;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 20px; background: #888; color: var(--testo);
+  display: flex; flex-direction: column; align-items: flex-start; gap: 20px;
+  font-family: Inter, "Helvetica Neue", Arial, sans-serif; font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+.scena {
+  display: flex; justify-content: center; align-items: flex-start; position: relative; overflow: hidden;
+  width: 860px; padding: 36px 40px 62px;
+  background: linear-gradient(160deg, #dfe9f6 0%, #c9d8ec 45%, #b7c9e2 100%);
+}
+.scena.scrivania {
+  background: radial-gradient(ellipse at 20% 10%, #6fb4ff 0%, transparent 55%),
+              radial-gradient(ellipse at 90% 90%, #2a4fb3 0%, transparent 60%),
+              linear-gradient(150deg, #3d7be6, #23408f);
+  padding: 0; display: block;
+}
+/* ---------- finestre ---------- */
+.finestra {
+  background: #fff; border-radius: 12px; position: relative; flex: none;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .30), 0 0 0 .5px rgba(0, 0, 0, .28);
+}
+.finestra > :first-child { border-top-left-radius: 12px; border-top-right-radius: 12px; }
+.finestra > :last-child { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
+.finestra > .corpo:last-child > :first-child { border-bottom-left-radius: 12px; }
+.finestra > .corpo:first-child > :first-child { border-top-left-radius: 12px; }
+.finestra > .corpo > :last-child { border-bottom-right-radius: 12px; }
+.barra {
+  height: 40px; display: flex; align-items: center; padding: 0 14px; position: relative;
+  background: #f6f6f6; border-bottom: 1px solid #dedede; font-weight: 600; color: #3c3c3c;
+}
+.semafori { display: flex; gap: 8px; position: relative; z-index: 1; }
+.semafori i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.semafori i:nth-child(1) { background: #ff5f57; } .semafori i:nth-child(2) { background: #febc2e; }
+.semafori i:nth-child(3) { background: #28c840; }
+.titolo { position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; }
+/* ---------- pulsanti ---------- */
+.pulsante {
+  white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; position: relative;
+  min-width: 74px; height: 24px; padding: 0 12px; border-radius: 6px; font-size: 13px;
+  background: #fff; color: var(--testo);
+  box-shadow: 0 .5px 1.5px rgba(0, 0, 0, .3), 0 0 0 .5px rgba(0, 0, 0, .12);
+}
+.pulsante.predefinito { background: linear-gradient(#2a8cff, #0a74f5); color: #fff; }
+.pulsanti { display: flex; gap: 10px; justify-content: flex-end; }
+/* ---------- avvisi (stile NSAlert) ---------- */
+.avviso {
+  width: 320px; flex: none; background: rgba(242, 242, 242, .98); border-radius: 14px; padding: 22px 18px 16px;
+  text-align: center; box-shadow: 0 24px 60px rgba(0, 0, 0, .32), 0 0 0 .5px rgba(0, 0, 0, .3);
+}
+.avviso .icona { width: 64px; height: 64px; }
+.avviso h3 { font-size: 13px; margin: 10px 0 6px; line-height: 1.3; }
+.avviso p { font-size: 11px; line-height: 1.4; margin: 0 0 16px; color: #3a3a3c; }
+.avviso .pulsanti { justify-content: stretch; }
+.avviso .pulsanti .pulsante { flex: 1; min-width: 0; }
+.avviso .colonna { display: flex; flex-direction: column; gap: 8px; }
+.avviso .colonna .pulsante { width: 100%; }
+/* ---------- finestre di dialogo (display dialog / choose from list) ---------- */
+.dialogo { width: 470px; }
+.dialogo .corpo { display: flex; gap: 16px; padding: 18px 20px 16px; }
+.dialogo .corpo .icona { width: 58px; height: 58px; flex: none; }
+.dialogo .testo { flex: 1; font-size: 13px; line-height: 1.45; }
+.dialogo .testo p { margin: 0 0 8px; }
+.dialogo .piede { padding: 0 20px 18px; }
+.campo {
+  border: 1px solid #c7c7cc; border-radius: 5px; height: 26px; padding: 3px 7px; font-size: 13px;
+  background: #fff; box-shadow: inset 0 1px 1px rgba(0, 0, 0, .06); position: relative; margin-top: 4px;
+}
+.campo.attivo { box-shadow: 0 0 0 3.5px rgba(10, 122, 255, .35); border-color: #5aa4ff; }
+.lista {
+  border: 1px solid #c7c7cc; border-radius: 5px; background: #fff; margin: 6px 0 4px;
+}
+.lista div:first-child { border-radius: 4px 4px 0 0; }
+.lista div { padding: 4px 10px; height: 24px; font-size: 13px; }
+.lista div.scelta { background: var(--blu); color: #fff; }
+/* ---------- Finder ---------- */
+.finder { width: 640px; }
+.finder .barra { height: 50px; background: #fbfbfb; }
+.finder .titolo { text-align: left; left: 236px; font-size: 14px; font-weight: 700; color: #2c2c2e; }
+.frecce { position: absolute; left: 172px; color: #9a9a9a; font-size: 17px; letter-spacing: 10px; }
+.finder .corpo { display: flex; height: 290px; }
+.laterale { width: 158px; background: #f1f1f3; border-right: 1px solid #e3e3e3; padding: 10px 8px; font-size: 13px; }
+.laterale .sezione { font-size: 11px; font-weight: 600; color: #8e8e93; margin: 4px 8px 6px; }
+.laterale .voce { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 6px; color: #2c2c2e; }
+.laterale .voce.attiva { background: #dcdcdf; }
+.laterale svg { width: 15px; height: 15px; flex: none; }
+.contenuto { flex: 1; padding: 22px 26px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 18px 30px; }
+.file { width: 112px; text-align: center; font-size: 12px; position: relative; overflow-wrap: anywhere; }
+.file .grande { width: 70px; height: 70px; display: block; margin: 0 auto 6px; }
+.file span.nome { display: inline-block; padding: 1px 5px; border-radius: 4px; line-height: 1.3; }
+.file.scelto span.nome { background: var(--blu); color: #fff; }
+.file.scelto .grande { filter: brightness(.82); }
+/* ---------- Terminale ---------- */
+.terminale { width: 600px; }
+.terminale .schermo {
+  background: #fff; padding: 10px 12px 14px; height: 300px; overflow: hidden;
+  font-family: "DejaVu Sans Mono", Menlo, monospace; font-size: 11.5px; line-height: 1.5; color: #1d1d1f; white-space: pre;
+}
+.terminale .verde { color: #1a7f37; } .terminale .grigio { color: #8a8a8e; }
+/* ---------- Impostazioni di Sistema ---------- */
+.impostazioni { width: 760px; }
+.impostazioni .corpo { display: flex; height: 470px; }
+.impostazioni .laterale { width: 218px; background: #ececee; padding: 12px 10px; }
+.cerca { background: #dcdcdf; border-radius: 7px; height: 26px; color: #8e8e93; font-size: 12.5px; padding: 5px 10px; margin-bottom: 12px; }
+.utente { display: flex; gap: 9px; align-items: center; padding: 4px 6px 12px; font-size: 12px; }
+.utente b { display: block; font-size: 13px; }
+.utente i { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(#b8c4d6, #8794a8); display: block; }
+.impostazioni .voce { gap: 9px; padding: 3.5px 8px; font-size: 13px; }
+.impostazioni .voce u { width: 20px; height: 20px; border-radius: 5px; display: block; flex: none; text-decoration: none; color: #fff; font-size: 11px; text-align: center; line-height: 20px; }
+.impostazioni .voce.attiva { background: var(--blu); color: #fff; }
+.destra { flex: 1; background: #f6f6f7; padding: 14px 24px; overflow: hidden; }
+.destra h2 { font-size: 15px; margin: 2px 0 14px; display: flex; gap: 12px; align-items: center; }
+.destra h2 small { color: #a1a1a6; font-size: 15px; letter-spacing: 6px; }
+.gruppo-titolo { font-weight: 700; font-size: 13px; margin: 14px 0 7px 4px; }
+.gruppo { background: #fff; border-radius: 9px; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .12); }
+.gruppo .riga { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; font-size: 13px; }
+.gruppo .riga + .riga { border-top: 1px solid #ececee; }
+.gruppo .riga .tenue { color: var(--tenue); }
+.menu-a-tendina { border-radius: 6px; padding: 2px 8px; box-shadow: 0 .5px 1.5px rgba(0,0,0,.3), 0 0 0 .5px rgba(0,0,0,.12); font-size: 12.5px; white-space: nowrap; }
+/* ---------- evidenziazioni ---------- */
+.clic { position: relative; }
+.clic::after {
+  content: ""; position: absolute; inset: -6px; border: 3px solid var(--rosso); border-radius: 11px; pointer-events: none;
+}
+.etichetta {
+  position: absolute; z-index: 5; background: var(--rosso); color: #fff; font-weight: 700; font-size: 12.5px;
+  padding: 4px 10px; border-radius: 13px; white-space: nowrap; box-shadow: 0 3px 8px rgba(0, 0, 0, .25);
+  font-family: Inter, sans-serif; line-height: 1.25; text-align: center;
+}
+.etichetta.sotto { top: calc(100% + 13px); left: 50%; transform: translateX(-50%); }
+.etichetta.sopra { bottom: calc(100% + 13px); left: 50%; transform: translateX(-50%); }
+.etichetta.destra { left: calc(100% + 14px); top: 50%; transform: translateY(-50%); }
+.etichetta.sinistra { right: calc(100% + 14px); top: 50%; transform: translateY(-50%); }
+.etichetta.sotto::before, .etichetta.sopra::before, .etichetta.destra::before, .etichetta.sinistra::before {
+  content: ""; position: absolute; border: 6px solid transparent;
+}
+.etichetta.sotto::before { bottom: 100%; left: 50%; margin-left: -6px; border-bottom-color: var(--rosso); }
+.etichetta.sopra::before { top: 100%; left: 50%; margin-left: -6px; border-top-color: var(--rosso); }
+.etichetta.destra::before { right: 100%; top: 50%; margin-top: -6px; border-right-color: var(--rosso); }
+.etichetta.sinistra::before { left: 100%; top: 50%; margin-top: -6px; border-left-color: var(--rosso); }
+.didascalia {
+  position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 11px; color: #4a5568; font-style: italic;
+}
+/* ---------- Scrivania ---------- */
+.barra-menu {
+  height: 26px; background: rgba(255, 255, 255, .28); backdrop-filter: blur(12px); color: #fff; font-size: 13px;
+  display: flex; align-items: center; gap: 18px; padding: 0 16px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.2);
+}
+.barra-menu .ora { margin-left: auto; font-weight: 500; }
+.icona-scrivania { position: absolute; width: 96px; text-align: center; color: #fff; font-size: 12px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+.icona-scrivania img { width: 72px; height: 72px; display: block; margin: 0 auto 4px; }
+.alias { position: absolute; left: 18px; top: 52px; width: 18px; height: 18px; }
+</style>
+</head>
+<body>
+
+<!-- Simboli riutilizzati -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="cartella-dietro" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6cbcf7"/><stop offset="1" stop-color="#4aa6ec"/></linearGradient>
+    <linearGradient id="cartella-davanti" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fd0fb"/><stop offset="1" stop-color="#61b6f3"/></linearGradient>
+    <symbol id="cartella" viewBox="0 0 70 70">
+      <path d="M6 18a5 5 0 0 1 5-5h16l6 6h26a5 5 0 0 1 5 5v4H6z" fill="url(#cartella-dietro)"/>
+      <rect x="4" y="24" width="62" height="38" rx="5" fill="url(#cartella-davanti)"/>
+    </symbol>
+    <symbol id="documento" viewBox="0 0 70 70">
+      <path d="M15 4h28l14 14v46a3 3 0 0 1-3 3H15a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z" fill="#fff" stroke="#c9c9ce"/>
+      <path d="M43 4v11a3 3 0 0 0 3 3h11" fill="#ececf0" stroke="#c9c9ce"/>
+    </symbol>
+    <symbol id="zip" viewBox="0 0 70 70">
+      <use href="#documento"/>
+      <path d="M33 6v40" stroke="#8e8e93" stroke-width="5" stroke-dasharray="3 3"/>
+      <rect x="29" y="44" width="8" height="11" rx="2" fill="#6e6e73"/>
+      <text x="35" y="64" font-size="8" text-anchor="middle" fill="#6e6e73" font-family="Inter" font-weight="700">ZIP</text>
+    </symbol>
+    <symbol id="pdf" viewBox="0 0 70 70">
+      <use href="#documento"/>
+      <path d="M20 26h30M20 32h30M20 38h22" stroke="#c7c7cc" stroke-width="2.4"/>
+      <rect x="18" y="47" width="34" height="13" rx="3" fill="#e5483f"/>
+      <text x="35" y="57" font-size="9" text-anchor="middle" fill="#fff" font-family="Inter" font-weight="700">PDF</text>
+    </symbol>
+    <symbol id="audio" viewBox="0 0 70 70">
+      <use href="#documento"/>
+      <g stroke="#a855f7" stroke-width="3.2" stroke-linecap="round">
+        <path d="M22 36v8M28 30v20M34 26v28M40 32v16M46 35v10"/>
+      </g>
+    </symbol>
+    <symbol id="testo" viewBox="0 0 70 70">
+      <use href="#documento"/>
+      <path d="M20 24h30M20 30h30M20 36h30M20 42h22M20 48h28" stroke="#9a9aa0" stroke-width="2.2"/>
+    </symbol>
+    <symbol id="terminale-icona" viewBox="0 0 64 64">
+      <rect x="4" y="4" width="56" height="56" rx="13" fill="#2b2b2e"/>
+      <rect x="4" y="4" width="56" height="56" rx="13" fill="none" stroke="#5b5b60" stroke-width="2"/>
+      <path d="M15 22l9 7-9 7" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M29 38h14" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="ico-recenti" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.3" fill="none" stroke="#0a7aff" stroke-width="1.6"/><path d="M8 4.5V8l2.5 1.6" stroke="#0a7aff" stroke-width="1.6" fill="none"/></symbol>
+    <symbol id="ico-applicazioni" viewBox="0 0 16 16"><path d="M8 2l5.5 12M8 2L2.5 14M4.5 10h7" stroke="#0a7aff" stroke-width="1.6" fill="none" stroke-linecap="round"/></symbol>
+    <symbol id="ico-scrivania" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5" fill="none" stroke="#0a7aff" stroke-width="1.5"/><path d="M5 14h6" stroke="#0a7aff" stroke-width="1.5"/></symbol>
+    <symbol id="ico-documenti" viewBox="0 0 16 16"><path d="M3.5 1.5h6l3 3v10h-9z" fill="none" stroke="#0a7aff" stroke-width="1.5"/></symbol>
+    <symbol id="ico-download" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.3" fill="none" stroke="#0a7aff" stroke-width="1.5"/><path d="M8 4.5v6M5.4 8.2L8 10.8l2.6-2.6" stroke="#0a7aff" stroke-width="1.5" fill="none"/></symbol>
+  </defs>
+</svg>
+
+<!-- ======================================================================================= -->
+<!-- INSTALLAZIONE                                                                            -->
+<!-- ======================================================================================= -->
+
+<!-- 1. Doppio clic sullo ZIP -->
+<section class="scena" id="i01-zip">
+  <div class="finestra finder">
+    <div class="barra"><div class="semafori"><i></i><i></i><i></i></div><span class="frecce">‹ ›</span><div class="titolo">Download</div></div>
+    <div class="corpo">
+      <div class="laterale">
+        <div class="sezione">Preferiti</div>
+        <div class="voce"><svg><use href="#ico-recenti"/></svg>Recenti</div>
+        <div class="voce"><svg><use href="#ico-applicazioni"/></svg>Applicazioni</div>
+        <div class="voce"><svg><use href="#ico-scrivania"/></svg>Scrivania</div>
+        <div class="voce"><svg><use href="#ico-documenti"/></svg>Documenti</div>
+        <div class="voce attiva"><svg><use href="#ico-download"/></svg>Download</div>
+      </div>
+      <div class="contenuto">
+        <div class="file clic"><svg class="grande"><use href="#zip"/></svg><span class="nome">TrascriviAudio.zip</span>
+          <span class="etichetta sotto">Doppio clic</span></div>
+        <div class="file" style="opacity:.55"><svg class="grande"><use href="#pdf"/></svg><span class="nome">Fattura.pdf</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. Doppio clic sull'app nella cartella estratta -->
+<section class="scena" id="i02-app">
+  <div class="finestra finder">
+    <div class="barra"><div class="semafori"><i></i><i></i><i></i></div><span class="frecce">‹ ›</span><div class="titolo">Trascrivi Audio</div></div>
+    <div class="corpo">
+      <div class="laterale">
+        <div class="sezione">Preferiti</div>
+        <div class="voce"><svg><use href="#ico-recenti"/></svg>Recenti</div>
+        <div class="voce"><svg><use href="#ico-applicazioni"/></svg>Applicazioni</div>
+        <div class="voce"><svg><use href="#ico-scrivania"/></svg>Scrivania</div>
+        <div class="voce"><svg><use href="#ico-documenti"/></svg>Documenti</div>
+        <div class="voce attiva"><svg><use href="#ico-download"/></svg>Download</div>
+      </div>
+      <div class="contenuto">
+        <div class="file clic"><img class="grande" src="../app/icona.png" alt=""><span class="nome">Trascrivi Audio</span>
+          <span class="etichetta sotto">Doppio clic</span></div>
+        <div class="file"><svg class="grande"><use href="#pdf"/></svg><span class="nome">Guida rapida.pdf</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. macOS blocca l'app la prima volta -->
+<section class="scena" id="i03-bloccata">
+  <div class="avviso">
+    <img class="icona" src="../app/icona.png" alt="">
+    <h3>“Trascrivi Audio” non è stata aperta</h3>
+    <p>Apple non ha potuto verificare che “Trascrivi Audio” sia privo di malware che potrebbe danneggiare il Mac o compromettere la tua privacy.</p>
+    <div class="pulsanti"><span class="pulsante">Sposta nel Cestino</span><span class="pulsante predefinito clic">Fine<span class="etichetta sotto">Clicca «Fine»</span></span></div>
+  </div>
+</section>
+
+<!-- 4. Impostazioni di Sistema → Privacy e sicurezza → Apri comunque -->
+<section class="scena" id="i04-impostazioni">
+  <div class="finestra impostazioni">
+    <div class="corpo">
+      <div class="laterale">
+        <div class="semafori" style="margin:4px 4px 16px"><i></i><i></i><i></i></div>
+        <div class="cerca">⌕ Cerca</div>
+        <div class="utente"><i></i><div><b>Mario Rossi</b>Account Apple</div></div>
+        <div class="voce"><u style="background:#0a7aff">≋</u>Wi‑Fi</div>
+        <div class="voce"><u style="background:#0a7aff">ᛒ</u>Bluetooth</div>
+        <div class="voce"><u style="background:#0a7aff">◍</u>Rete</div>
+        <div class="voce"><u style="background:#ff3b30">●</u>Notifiche</div>
+        <div class="voce"><u style="background:#ff2d55">♪</u>Suono</div>
+        <div class="voce"><u style="background:#8e8e93">⚙</u>Generali</div>
+        <div class="voce"><u style="background:#1d1d1f">◐</u>Aspetto</div>
+        <div class="voce"><u style="background:#0a7aff">♿</u>Accessibilità</div>
+        <div class="voce attiva clic"><u style="background:#2f7cf6;box-shadow:0 0 0 1px #fff">✋</u>Privacy e sicurezza<span class="etichetta destra">1. Clicca «Privacy e sicurezza»</span></div>
+        <div class="voce"><u style="background:#8e8e93">▤</u>Scrivania e Dock</div>
+        <div class="voce"><u style="background:#0a7aff">▭</u>Monitor</div>
+      </div>
+      <div class="destra">
+        <h2><small>‹ ›</small>Privacy e sicurezza</h2>
+        <div class="gruppo">
+          <div class="riga"><span>Servizi di localizzazione</span><span class="tenue">›</span></div>
+          <div class="riga"><span>Accesso completo al disco</span><span class="tenue">›</span></div>
+        </div>
+        <div class="gruppo-titolo">Sicurezza</div>
+        <div class="gruppo">
+          <div class="riga"><span>Consenti applicazioni da</span><span class="menu-a-tendina">App Store e sviluppatori identificati ⌄</span></div>
+          <div class="riga"><span>“Trascrivi Audio” è stato bloccato per proteggere il Mac.</span>
+            <span class="pulsante clic" style="white-space:nowrap">Apri comunque<span class="etichetta sotto">2. Clicca «Apri comunque»</span></span></div>
+        </div>
+        <div class="gruppo-titolo" style="margin-top:46px">Altre impostazioni</div>
+        <div class="gruppo">
+          <div class="riga"><span>FileVault</span><span class="tenue">Attivo ›</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Conferma «Apri comunque» -->
+<section class="scena" id="i05-conferma">
+  <div class="avviso">
+    <img class="icona" src="../app/icona.png" alt="">
+    <h3>Aprire “Trascrivi Audio”?</h3>
+    <p>Apple non ha potuto verificare che “Trascrivi Audio” sia privo di malware. Aprila solo se sei certo che provenga da una fonte affidabile.</p>
+    <div class="colonna"><span class="pulsante predefinito clic">Apri comunque<span class="etichetta destra">Clicca «Apri comunque»</span></span><span class="pulsante">Sposta nel Cestino</span><span class="pulsante">Fine</span></div>
+  </div>
+</section>
+
+<!-- 6. Password del Mac -->
+<section class="scena" id="i06-password">
+  <div class="avviso" style="width:350px">
+    <svg class="icona" viewBox="0 0 64 64"><rect x="8" y="26" width="48" height="32" rx="7" fill="#8e8e93"/><path d="M19 27V19a13 13 0 0 1 26 0v8" stroke="#8e8e93" stroke-width="6" fill="none"/><circle cx="32" cy="41" r="4.5" fill="#fff"/></svg>
+    <h3>Privacy e sicurezza</h3>
+    <p>Privacy e sicurezza sta cercando di modificare le impostazioni. Usa Touch ID o inserisci la password per consentire questa operazione.</p>
+    <div class="campo" style="text-align:left;color:#3a3a3c">Mario Rossi</div>
+    <div class="campo attivo clic" style="text-align:left;margin:8px 0 14px">●●●●●●●●<span class="etichetta destra">La password del Mac</span></div>
+    <div class="pulsanti"><span class="pulsante">Annulla</span><span class="pulsante predefinito clic">Modifica impostazioni<span class="etichetta sotto">Poi clicca qui</span></span></div>
+  </div>
+</section>
+
+<!-- 7. Installazione automatica nel Terminale -->
+<section class="scena" id="i07-terminale">
+  <div class="finestra terminale">
+    <div class="barra"><div class="semafori"><i></i><i></i><i></i></div><div class="titolo">Trascrivi Audio — Trascrivi-Audio.command — 80×24</div></div>
+    <div class="schermo">Trascrivi Audio 2026.10.14
+Questa finestra mostra l'avanzamento: lasciala aperta mentre usi il programma.
+Scarico Python 3.12.15 portatile (circa 24 MB)...
+######################################################################## 100,0%
+<span class="verde">Python portatile installato.</span>
+Installo Whisper (circa 300 MB, alcuni minuti)...
+Successfully installed ctranslate2-4.6.0 faster-whisper-1.2.1 ...
+<span class="verde">Whisper installato.</span>
+Scarico il modello large-v3 (una volta sola, può volerci un po')...
+model.bin:  61%|█████████████████▍          | 1.88G/3.09G [02:41&lt;01:43, 11.6MB/s]</div>
+  </div>
+  <div class="etichetta" style="left:50%;bottom:12px;transform:translateX(-50%)">Attendi: fa tutto da solo. Non chiudere questa finestra</div>
+</section>
+
+<!-- 8. Permesso di accesso a una cartella -->
+<section class="scena" id="i08-permesso">
+  <div class="avviso">
+    <svg class="icona"><use href="#terminale-icona"/></svg>
+    <h3>“Terminale” vorrebbe accedere ai file nella cartella Documenti.</h3>
+    <p>Puoi modificare questa scelta in seguito in Impostazioni di Sistema › Privacy e sicurezza.</p>
+    <div class="pulsanti"><span class="pulsante">Non consentire</span><span class="pulsante predefinito clic">Consenti<span class="etichetta sotto">Clicca «Consenti»</span></span></div>
+  </div>
+</section>
+
+<!-- 9. Installazione completata -->
+<section class="scena" id="i09-completata">
+  <div class="finestra dialogo">
+    <div class="barra"><div class="titolo">Trascrivi Audio</div></div>
+    <div class="corpo">
+      <img class="icona" src="../app/icona.png" alt="">
+      <div class="testo">
+        <p><b>Installazione completata.</b></p>
+        <p>• Sulla Scrivania trovi l'icona «Trascrivi Audio»: aprila ogni volta che vuoi usare il programma.<br>
+        • I progetti verranno salvati in Documenti › Trascrivi Audio › Progetti.<br>
+        • La guida è in Documenti › Trascrivi Audio › Guida rapida.pdf.</p>
+        <p>Ora si apre il menu principale.</p>
+      </div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante predefinito clic">OK<span class="etichetta sinistra">Clicca «OK»</span></span></div>
+  </div>
+</section>
+
+<!-- 10. L'icona sulla Scrivania -->
+<section class="scena scrivania" id="i10-scrivania" style="width:860px;height:330px">
+  <div class="barra-menu"><span></span><span>Finder</span><span style="font-weight:500">Archivio</span><span style="font-weight:500">Composizione</span><span style="font-weight:500">Vista</span><span class="ora">mar 14 ott 10:30</span></div>
+  <div class="icona-scrivania clic" style="right:40px;top:58px">
+    <img src="../app/icona.png" alt="">
+    <svg class="alias" viewBox="0 0 18 18"><rect width="18" height="18" rx="4" fill="#fff"/><path d="M5 13l7-7M7 6h5v5" stroke="#1d1d1f" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+    Trascrivi Audio
+    <span class="etichetta sinistra">D'ora in poi: doppio clic qui</span>
+  </div>
+  <div class="icona-scrivania" style="right:40px;top:186px;opacity:.85"><svg style="width:64px;height:64px;display:block;margin:0 auto 4px"><use href="#cartella"/></svg>Lavoro</div>
+</section>
+
+<!-- ======================================================================================= -->
+<!-- NUOVO PROGETTO                                                                           -->
+<!-- ======================================================================================= -->
+
+<!-- Menu principale: Nuovo progetto -->
+<section class="scena" id="p01-menu-nuovo">
+  <div class="finestra dialogo" style="width:400px">
+    <div class="barra"><div class="titolo">Trascrivi Audio</div></div>
+    <div class="corpo" style="display:block">
+      <div class="testo">Cosa vuoi fare?</div>
+      <div class="lista"><div class="scelta clic">Nuovo progetto<span class="etichetta destra" style="left:calc(100% + 24px)">1. Scegli</span></div><div>Apri un progetto</div><div>Guida rapida</div><div>Disinstalla Trascrivi Audio</div></div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante">Esci</span><span class="pulsante predefinito clic">Avanti<span class="etichetta sotto">2. Clicca «Avanti»</span></span></div>
+  </div>
+</section>
+
+<!-- Nome del progetto -->
+<section class="scena" id="p02-nome">
+  <div class="finestra dialogo">
+    <div class="barra"><div class="titolo">Trascrivi Audio</div></div>
+    <div class="corpo">
+      <img class="icona" src="../app/icona.png" alt="">
+      <div class="testo"><p>Scrivi il nome del nuovo progetto:</p>
+        <div class="campo attivo clic">Intervista Rossi<span class="etichetta sotto">1. Scrivi il nome</span></div></div>
+    </div>
+    <div class="piede pulsanti" style="margin-top:22px"><span class="pulsante">Annulla</span><span class="pulsante predefinito clic">Avanti<span class="etichetta destra" style="left:auto;right:0;top:calc(100% + 13px);transform:none">2. Clicca «Avanti»</span></span></div>
+  </div>
+</section>
+
+<!-- Scelta del file audio -->
+<section class="scena" id="p03-audio">
+  <div class="finestra finder" style="width:660px">
+    <div class="barra" style="height:44px"><span class="frecce" style="left:16px">‹ ›</span><div class="titolo" style="left:80px">⌄ Download</div></div>
+    <div style="padding:8px 16px 0;font-size:13px">Scegli il file audio (o video) da trascrivere:</div>
+    <div class="corpo" style="height:220px;margin-top:8px;border-top:1px solid #e3e3e3">
+      <div class="laterale">
+        <div class="sezione">Preferiti</div>
+        <div class="voce"><svg><use href="#ico-recenti"/></svg>Recenti</div>
+        <div class="voce"><svg><use href="#ico-scrivania"/></svg>Scrivania</div>
+        <div class="voce"><svg><use href="#ico-documenti"/></svg>Documenti</div>
+        <div class="voce attiva"><svg><use href="#ico-download"/></svg>Download</div>
+      </div>
+      <div class="contenuto">
+        <div class="file scelto clic"><svg class="grande"><use href="#audio"/></svg><span class="nome">intervista-rossi.m4a</span>
+          <span class="etichetta sotto">1. Seleziona l'audio</span></div>
+        <div class="file"><svg class="grande"><use href="#audio"/></svg><span class="nome">riunione.mp3</span></div>
+        <div class="file" style="opacity:.45"><svg class="grande"><use href="#pdf"/></svg><span class="nome">Fattura.pdf</span></div>
+      </div>
+    </div>
+    <div class="piede pulsanti" style="padding:12px 16px 14px;border-top:1px solid #e3e3e3"><span class="pulsante">Annulla</span><span class="pulsante predefinito clic">Scegli<span class="etichetta sinistra">2. Clicca «Scegli»</span></span></div>
+  </div>
+</section>
+
+<!-- Avanzamento della trascrizione -->
+<section class="scena" id="p04-avanzamento">
+  <div class="finestra terminale">
+    <div class="barra"><div class="semafori"><i></i><i></i><i></i></div><div class="titolo">Trascrivi Audio — Trascrivi-Audio.command — 80×24</div></div>
+    <div class="schermo" style="height:270px">Copio l'audio nel progetto...
+
+Progetto:     000 – Intervista Rossi
+Cartella:     /Users/mario/Documents/Trascrivi Audio/Progetti/000_IntervistaRossi
+Audio:        000_IntervistaRossi_audio.m4a
+Non chiudere questa finestra: qui vedi l'avanzamento della trascrizione.
+
+[1/4] Carico il modello large-v3 ...
+[1/4] large-v3:  100.0% (00:27:45 di 00:27:45)
+[1/4] large-v3 completato in 00:31:12.
+
+[2/4] Carico il modello medium ...
+[2/4] medium:   46.3% (00:12:51 di 00:27:45)</div>
+  </div>
+  <div class="etichetta" style="left:50%;bottom:12px;transform:translateX(-50%)">Qui vedi a che punto è la trascrizione</div>
+</section>
+
+<!-- Trascrizione completata -->
+<section class="scena" id="p05-completata">
+  <div class="finestra dialogo">
+    <div class="barra"><div class="titolo">Trascrivi Audio</div></div>
+    <div class="corpo">
+      <img class="icona" src="../app/icona.png" alt="">
+      <div class="testo">
+        <p><b>Trascrizione del progetto «Intervista Rossi» completata.</b></p>
+        <p>Parole da riverificare: 23 su 3.412<br>(prima del riascolto erano 61, 38 risolte automaticamente)</p>
+        <p>Ora si apre nel browser la schermata di controllo delle parole: ascolta ogni ritaglio, correggi la parola e spunta «Confermata», poi premi «Salva».</p>
+      </div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante predefinito clic">OK<span class="etichetta sinistra">Clicca «OK»</span></span></div>
+  </div>
+</section>
+
+<!-- Dove sono i file del progetto -->
+<section class="scena" id="p07-cartella-progetto">
+  <div class="finestra finder" style="width:700px">
+    <div class="barra"><div class="semafori"><i></i><i></i><i></i></div><span class="frecce">‹ ›</span><div class="titolo">000_IntervistaRossi</div></div>
+    <div style="padding:6px 16px;font-size:11.5px;color:#6e6e73;border-bottom:1px solid #eee">Documenti › Trascrivi Audio › Progetti › 000_IntervistaRossi</div>
+    <div class="corpo" style="height:250px">
+      <div class="laterale">
+        <div class="sezione">Preferiti</div>
+        <div class="voce"><svg><use href="#ico-recenti"/></svg>Recenti</div>
+        <div class="voce"><svg><use href="#ico-applicazioni"/></svg>Applicazioni</div>
+        <div class="voce"><svg><use href="#ico-scrivania"/></svg>Scrivania</div>
+        <div class="voce attiva"><svg><use href="#ico-documenti"/></svg>Documenti</div>
+        <div class="voce"><svg><use href="#ico-download"/></svg>Download</div>
+      </div>
+      <div class="contenuto" style="gap:14px 22px;padding:16px 20px">
+        <div class="file"><svg class="grande"><use href="#audio"/></svg><span class="nome">…_audio.m4a</span></div>
+        <div class="file"><svg class="grande"><use href="#testo"/></svg><span class="nome">…_trascrizione.txt</span></div>
+        <div class="file clic"><svg class="grande"><use href="#testo"/></svg><span class="nome">…_trascrizione<wbr>_corretta.txt</span><span class="etichetta sotto">Il testo corretto</span></div>
+        <div class="file"><svg class="grande"><use href="#testo"/></svg><span class="nome">…_controllo.txt</span></div>
+        <div class="file"><svg class="grande"><use href="#cartella"/></svg><span class="nome">…_clip</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================================= -->
+<!-- APRIRE UN PROGETTO                                                                       -->
+<!-- ======================================================================================= -->
+
+<section class="scena" id="a01-menu-apri">
+  <div class="finestra dialogo" style="width:400px">
+    <div class="barra"><div class="titolo">Trascrivi Audio</div></div>
+    <div class="corpo" style="display:block">
+      <div class="testo">Cosa vuoi fare?</div>
+      <div class="lista"><div>Nuovo progetto</div><div class="scelta clic">Apri un progetto<span class="etichetta destra" style="left:calc(100% + 24px)">1. Scegli</span></div><div>Guida rapida</div><div>Disinstalla Trascrivi Audio</div></div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante">Esci</span><span class="pulsante predefinito clic">Avanti<span class="etichetta sotto">2. Clicca «Avanti»</span></span></div>
+  </div>
+</section>
+
+<section class="scena" id="a02-lista">
+  <div class="finestra dialogo" style="width:400px">
+    <div class="barra"><div class="titolo">Trascrivi Audio</div></div>
+    <div class="corpo" style="display:block">
+      <div class="testo">Scegli il progetto da aprire:</div>
+      <div class="lista"><div class="scelta clic">Intervista Rossi<span class="etichetta destra" style="left:calc(100% + 24px)">1. Scegli il progetto</span></div><div>Riunione di ottobre</div><div>Lezione di storia</div></div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante">Annulla</span><span class="pulsante predefinito clic">Avanti<span class="etichetta sotto">2. Clicca «Avanti»</span></span></div>
+  </div>
+</section>
+
+<section class="scena" id="a03-cosa-fare">
+  <div class="finestra dialogo" style="width:560px">
+    <div class="barra"><div class="titolo">Trascrivi Audio</div></div>
+    <div class="corpo">
+      <img class="icona" src="../app/icona.png" alt="">
+      <div class="testo"><p>Progetto «Intervista Rossi»: cosa vuoi fare?</p></div>
+    </div>
+    <div class="piede pulsanti" style="margin-top:6px"><span class="pulsante">Annulla</span><span class="pulsante clic">Rielabora la trascrizione<span class="etichetta sotto">Rifà la trascrizione</span></span><span class="pulsante predefinito clic">Analisi delle parole<span class="etichetta sotto" style="left:auto;right:-6px;transform:none">Controlla le parole</span></span></div>
+    <div style="height:42px"></div>
+  </div>
+</section>
+
+<section class="scena" id="a04-rielabora">
+  <div class="finestra dialogo">
+    <div class="barra"><div class="titolo">Trascrivi Audio</div></div>
+    <div class="corpo">
+      <img class="icona" src="../app/icona.png" alt="">
+      <div class="testo"><p><b>Rielaborare la trascrizione del progetto «Intervista Rossi»?</b></p>
+        <p>La trascrizione e le parole da controllare verranno rifatte da capo: le correzioni fatte in questo progetto andranno perse (il tuo dizionario personale resta e verrà usato).</p></div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante">Annulla</span><span class="pulsante predefinito clic">Rielabora<span class="etichetta sinistra" style="right:calc(100% + 110px)">Per confermare</span></span></div>
+  </div>
+</section>
+
+<!-- ======================================================================================= -->
+<!-- MENU E DISINSTALLAZIONE                                                                  -->
+<!-- ======================================================================================= -->
+
+<section class="scena" id="m01-menu">
+  <div class="finestra dialogo" style="width:400px">
+    <div class="barra"><div class="titolo">Trascrivi Audio</div></div>
+    <div class="corpo" style="display:block">
+      <div class="testo">Cosa vuoi fare?</div>
+      <div class="lista"><div>Nuovo progetto</div><div>Apri un progetto</div><div>Guida rapida</div><div class="scelta clic">Disinstalla Trascrivi Audio<span class="etichetta destra" style="left:calc(100% + 24px)">Per disinstallare</span></div></div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante clic">Esci<span class="etichetta sotto">Chiude il programma</span></span><span class="pulsante predefinito">Avanti</span></div>
+  </div>
+</section>
+
+<section class="scena" id="m02-disinstalla">
+  <div class="finestra dialogo" style="width:580px">
+    <div class="barra"><div class="titolo">Trascrivi Audio</div></div>
+    <div class="corpo">
+      <img class="icona" src="../app/icona.png" alt="">
+      <div class="testo">
+        <p><b>Vuoi disinstallare Trascrivi Audio?</b></p>
+        <p>Verranno cancellati il programma, l'icona sulla Scrivania, Whisper con i modelli (circa 5 GB) e il dizionario delle tue correzioni.</p>
+        <p>I progetti (audio e trascrizioni) sono in Documenti › Trascrivi Audio: puoi conservarli o cancellarli.</p>
+      </div>
+    </div>
+    <div class="piede pulsanti"><span class="pulsante">Annulla</span><span class="pulsante clic">Cancella anche i progetti<span class="etichetta sotto">Cancella tutto</span></span><span class="pulsante predefinito clic">Conserva i progetti<span class="etichetta sotto" style="left:auto;right:-6px;transform:none">Tiene le trascrizioni</span></span></div>
+    <div style="height:42px"></div>
+  </div>
+</section>
+
+</body>
+</html>

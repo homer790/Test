@@ -1,7 +1,11 @@
 #!/bin/bash
-# Crea l'installatore autoestraente per Mac:
-#   dist/Installa-TrascriviAudio.zip, che contiene Installa-TrascriviAudio.command
-#   (script + archivio dei file in coda). Lo ZIP conserva il permesso di esecuzione.
+# Crea il pacchetto da distribuire: dist/TrascriviAudio.zip
+#
+# Con un doppio clic sullo ZIP, il Mac estrae la cartella «Trascrivi Audio» con dentro:
+#   - Trascrivi Audio.app   l'app: al primo avvio si copia in Applicazioni e prepara tutto da sola
+#   - Guida rapida.pdf      la guida
+#
+# Passi: guida PDF (da guida/GUIDA-RAPIDA.md) → icona .icns (da app/icona.png) → app → ZIP.
 # uso: ./crea-installatore.sh
 
 set -eu
@@ -11,7 +15,7 @@ VERSIONE=$(date +%Y.%m.%d)
 LAVORO=$(mktemp -d)
 trap 'rm -rf "$LAVORO"' EXIT
 
-# --- Guida rapida in PDF: GUIDA-RAPIDA.md → HTML (pandoc) → PDF (Chrome/Chromium senza finestra).
+# --- 1. Guida rapida in PDF: Markdown → HTML (pandoc, immagini incluse) → PDF (Chrome senza finestra).
 # Se mancano gli strumenti si usa il PDF già presente nel repository.
 GUIDA_PDF="$QUI/Guida rapida.pdf"
 trova_chrome() {
@@ -24,8 +28,8 @@ trova_chrome() {
   return 1
 }
 if command -v pandoc >/dev/null && CHROME_BIN=$(trova_chrome); then
-  pandoc "$QUI/GUIDA-RAPIDA.md" -s --embed-resources --css "$QUI/guida-stile.css" \
-    --metadata pagetitle="Trascrivi Audio – Guida rapida" --metadata lang=it -o "$LAVORO/guida.html"
+  (cd "$QUI/guida" && pandoc GUIDA-RAPIDA.md -s --embed-resources --css stile.css \
+    --metadata pagetitle="Trascrivi Audio – Guida rapida" --metadata lang=it -o "$LAVORO/guida.html")
   "$CHROME_BIN" --headless --no-sandbox --disable-gpu --no-pdf-header-footer \
     --print-to-pdf="$LAVORO/guida.pdf" "file://$LAVORO/guida.html" 2>/dev/null
   [ -s "$LAVORO/guida.pdf" ] || { echo "Creazione del PDF non riuscita." >&2; exit 1; }
@@ -38,133 +42,33 @@ else
   exit 1
 fi
 
-# --- File dell'applicazione da mettere nell'archivio
-mkdir -p "$LAVORO/app"
-cp "$QUI/Trascrivi-Audio.command" "$QUI/Controlla-Parole.command" "$QUI/Applica-Correzioni.command" \
-   "$QUI/comune.sh" "$QUI/progetti.py" "$QUI/schermata_controllo.py" "$QUI/applica_correzioni.py" "$LAVORO/app/"
-cp "$GUIDA_PDF" "$LAVORO/app/Guida rapida.pdf"
-cp "$QUI/GUIDA-RAPIDA.md" "$LAVORO/app/Guida rapida.md"
-cp "$QUI/LEGGIMI.md" "$LAVORO/app/Istruzioni complete.txt"
-echo "$VERSIONE" > "$LAVORO/app/versione.txt"
-chmod +x "$LAVORO/app/"*.command
-# COPYFILE_DISABLE: niente file ._ di macOS nell'archivio, se lo si crea su Mac
-COPYFILE_DISABLE=1 tar -czf "$LAVORO/app.tar.gz" -C "$LAVORO/app" .
+# --- 2. Icona dell'app (.icns) dal disegno (app/icona.png, creata da app/crea-icona.js)
+if python3 -c 'import PIL' 2>/dev/null; then
+  python3 -c "from PIL import Image; Image.open('$QUI/app/icona.png').save('$QUI/app/AppIcon.icns')"
+fi
+[ -s "$QUI/app/AppIcon.icns" ] || { echo "Manca app/AppIcon.icns (serve Python con Pillow)." >&2; exit 1; }
 
-# --- Intestazione: lo script che estrae l'archivio
+# --- 3. L'app: Trascrivi Audio.app
+CARTELLA="$LAVORO/Trascrivi Audio"
+APP="$CARTELLA/Trascrivi Audio.app"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/programma"
+sed "s/@VERSIONE@/$VERSIONE/g" "$QUI/app/Info.plist" > "$APP/Contents/Info.plist"
+printf 'APPL????' > "$APP/Contents/PkgInfo"
+cp "$QUI/app/TrascriviAudio" "$APP/Contents/MacOS/TrascriviAudio"
+cp "$QUI/app/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+cp "$QUI/programma/Trascrivi-Audio.command" "$QUI/programma/comune.sh" "$QUI/programma/progetti.py" \
+   "$QUI/programma/trascrivi_dubbi.py" "$QUI/programma/schermata_controllo.py" \
+   "$QUI/programma/applica_correzioni.py" "$APP/Contents/Resources/programma/"
+cp "$GUIDA_PDF" "$APP/Contents/Resources/Guida rapida.pdf"
+echo "$VERSIONE" > "$APP/Contents/Resources/versione.txt"
+chmod 755 "$APP/Contents/MacOS/TrascriviAudio" "$APP/Contents/Resources/programma/Trascrivi-Audio.command"
+python3 -c "import plistlib,sys; plistlib.load(open(sys.argv[1],'rb'))" "$APP/Contents/Info.plist" \
+  || { echo "Info.plist non valido." >&2; exit 1; }
+cp "$GUIDA_PDF" "$CARTELLA/Guida rapida.pdf"
+
+# --- 4. ZIP con i permessi Unix (il Mac li rispetta quando lo si apre con doppio clic)
 mkdir -p "$DIST"
-INSTALLATORE="$DIST/Installa-TrascriviAudio.command"
-sed "s/@VERSIONE@/$VERSIONE/" > "$INSTALLATORE" <<'EOF'
-#!/bin/bash
-# Installatore autoestraente di Trascrivi Audio (versione @VERSIONE@).
-# Doppio clic: chiede la cartella, estrae i file, installa Python e Whisper se mancano
-# (chiedendo conferma) e crea i collegamenti
-# sulla Scrivania. Rilanciarlo scegliendo la stessa cartella aggiorna il programma
-# senza toccare dizionario, esempi e trascrizioni.
-
-set -u
-TITOLO="Installa Trascrivi Audio"
-NOME_CARTELLA="Trascrivi Audio"
-
-avviso() {
-  osascript - "$1" "${2:-note}" "$TITOLO" >/dev/null 2>&1 <<'OSA'
-on run argv
-  set icona to note
-  if item 2 of argv is "stop" then set icona to stop
-  display dialog (item 1 of argv) buttons {"OK"} default button "OK" with title (item 3 of argv) with icon icona
-end run
-OSA
-}
-domanda() {
-  osascript - "$1" "$2" "$TITOLO" >/dev/null 2>&1 <<'OSA'
-on run argv
-  display dialog (item 1 of argv) buttons {"Annulla", item 2 of argv} default button (item 2 of argv) cancel button "Annulla" with title (item 3 of argv)
-end run
-OSA
-}
-errore() { avviso "$1" stop; echo "ERRORE: $1"; exit 1; }
-
-domanda "Benvenuto nell'installazione di Trascrivi Audio (versione @VERSIONE@).
-
-Ora ti chiederò in quale cartella installarlo: verrà creata la cartella «$NOME_CARTELLA».
-Poi controllerò se sul Mac ci sono Python e Whisper: se mancano, ti chiederò
-se installarli (puoi sempre annullare).
-Sulla Scrivania troverai il collegamento «Trascrivi Audio», che gestisce tutto:
-progetti, trascrizioni e controllo delle parole. Alla fine si avvierà da solo.
-
-Se il programma è già installato, scegli la stessa cartella per aggiornarlo:
-dizionario, esempi e trascrizioni non vengono toccati." "Continua" || exit 0
-
-SCELTA=$(osascript -e 'POSIX path of (choose folder with prompt "In quale cartella installo Trascrivi Audio? (verrà creata la cartella «Trascrivi Audio»)" default location (path to documents folder))' 2>/dev/null) \
-  || { echo "Nessuna cartella scelta."; exit 0; }
-SCELTA="${SCELTA%/}"
-# Se l'utente ha scelto direttamente la cartella «Trascrivi Audio», usiamo quella
-if [ "$(basename "$SCELTA")" = "$NOME_CARTELLA" ]; then DEST="$SCELTA"; else DEST="$SCELTA/$NOME_CARTELLA"; fi
-
-if [ -e "$DEST/Trascrivi-Audio.command" ]; then
-  domanda "In «$DEST» c'è già Trascrivi Audio (versione $(cat "$DEST/versione.txt" 2>/dev/null || echo "?")).
-
-Vuoi aggiornarlo alla versione @VERSIONE@?" "Aggiorna" || exit 0
-fi
-
-# --- Estrazione dell'archivio che sta in coda a questo file
-mkdir -p "$DEST" || errore "Non riesco a creare la cartella $DEST."
-INIZIO=$(awk '/^__ARCHIVIO__$/ { print NR + 1; exit }' "$0")
-tail -n +"$INIZIO" "$0" | tar -xzf - -C "$DEST" || errore "Estrazione dei file non riuscita."
-chmod +x "$DEST/"*.command
-# I file estratti non devono essere bloccati da macOS come "scaricati da internet"
-command -v xattr >/dev/null && xattr -dr com.apple.quarantine "$DEST" 2>/dev/null
-echo "File estratti in: $DEST"
-
-# --- Controllo e installazione di Python e Whisper (solo se mancano, chiedendo conferma)
-"$DEST/Trascrivi-Audio.command" --installa || errore "Installazione di Python o Whisper non riuscita. Guarda la finestra del Terminale."
-VENV="$HOME/Library/Application Support/TrascriviAudio/venv"
-if "$VENV/bin/python" -c 'import faster_whisper' 2>/dev/null; then
-  STATO_WHISPER="Python e Whisper sono installati."
-  WHISPER_OK=1
-else
-  STATO_WHISPER="Python e/o Whisper non sono stati installati: verranno proposti al primo avvio di «Trascrivi Audio»."
-  WHISPER_OK=""
-fi
-
-# --- Collegamenti sulla Scrivania
-SCRIVANIA="$HOME/Desktop"
-mkdir -p "$SCRIVANIA"
-ln -sfn "$DEST/Trascrivi-Audio.command" "$SCRIVANIA/Trascrivi Audio"
-# collegamenti delle versioni precedenti: ora tutto passa da «Trascrivi Audio»
-rm -f "$SCRIVANIA/Controlla Parole" "$SCRIVANIA/Applica Correzioni"
-mkdir -p "$DEST/Progetti"
-
-if [ -n "$WHISPER_OK" ]; then
-  avviso "Installazione completata.
-
-$STATO_WHISPER
-
-Sulla Scrivania trovi «Trascrivi Audio»: gestisce progetti, trascrizioni e controllo delle parole.
-I progetti vengono salvati in:
-$DEST/Progetti
-
-Ora si avvia Trascrivi Audio."
-  echo "Avvio Trascrivi Audio..."
-  exec "$DEST/Trascrivi-Audio.command"
-fi
-avviso "Installazione completata.
-
-$STATO_WHISPER
-
-Sulla Scrivania trovi «Trascrivi Audio»: gestisce progetti, trascrizioni e controllo delle parole.
-I file del programma e la guida rapida sono in:
-$DEST"
-command -v open >/dev/null && open "$DEST"
-echo "Fatto. Puoi chiudere questa finestra."
-exit 0
-__ARCHIVIO__
-EOF
-cat "$LAVORO/app.tar.gz" >> "$INSTALLATORE"
-chmod +x "$INSTALLATORE"
-
-# ZIP con i permessi Unix (il Mac li rispetta quando lo si apre con doppio clic)
-rm -f "$DIST/Installa-TrascriviAudio.zip"
-(cd "$DIST" && zip -q -X Installa-TrascriviAudio.zip Installa-TrascriviAudio.command)
-rm "$INSTALLATORE"  # si distribuisce solo lo ZIP
-echo "Creati:"
-ls -la "$DIST"
+rm -f "$DIST/TrascriviAudio.zip" "$DIST/Installa-TrascriviAudio.zip"
+(cd "$LAVORO" && COPYFILE_DISABLE=1 zip -q -r -X -y "$DIST/TrascriviAudio.zip" "Trascrivi Audio")
+echo "Creato dist/TrascriviAudio.zip (versione $VERSIONE):"
+unzip -l "$DIST/TrascriviAudio.zip" | sed 's/^/  /'

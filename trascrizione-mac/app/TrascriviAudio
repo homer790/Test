@@ -1,0 +1,45 @@
+#!/bin/bash
+# Avvio dell'app «Trascrivi Audio» (Trascrivi Audio.app/Contents/MacOS/TrascriviAudio).
+#
+# - Se l'app NON è nella cartella Applicazioni (primo avvio dalla cartella estratta dallo ZIP,
+#   oppure una versione nuova da installare): si copia in Applicazioni, sostituendo la versione
+#   precedente, e toglie il blocco «scaricato da internet» dalla copia installata.
+#   Se Applicazioni non è scrivibile (utente non amministratore), macOS chiede la password.
+# - Poi apre il programma nel Terminale (la finestra mostra l'avanzamento), sempre dalla copia
+#   in Applicazioni: è lì che l'app lavora.
+
+APP=$(cd "$(dirname "$0")/../.." && pwd -P)
+APPLICAZIONI="${APPLICAZIONI:-/Applications}"   # i test usano una cartella temporanea
+DEST="$APPLICAZIONI/Trascrivi Audio.app"
+SUPPORTO="$HOME/Library/Application Support/TrascriviAudio"
+
+errore() {
+  osascript - "$1" >/dev/null 2>&1 <<'EOF'
+on run argv
+  display dialog (item 1 of argv) buttons {"OK"} default button "OK" with title "Trascrivi Audio" with icon stop
+end run
+EOF
+  exit 1
+}
+
+if [ "$APP" != "$DEST" ]; then
+  if [ -d "$DEST" ]; then TIPO="aggiornamento"; else TIPO="installazione"; fi
+  NUOVO="$DEST.nuovo"
+  if ! { rm -rf "$NUOVO" && ditto --noqtn "$APP" "$NUOVO" && rm -rf "$DEST" && mv "$NUOVO" "$DEST"; } 2>/dev/null; then
+    rm -rf "$NUOVO" 2>/dev/null
+    # Applicazioni non scrivibile: la copia la fa macOS dopo aver chiesto la password
+    osascript - "$APP" "$DEST" >/dev/null 2>&1 <<'EOF' || errore "Non sono riuscito a copiare Trascrivi Audio nella cartella Applicazioni."
+on run argv
+  set sorgente to quoted form of (item 1 of argv)
+  set destinazione to quoted form of (item 2 of argv)
+  do shell script "/bin/rm -rf " & destinazione & " && /usr/bin/ditto --noqtn " & sorgente & " " & destinazione with administrator privileges
+end run
+EOF
+  fi
+  xattr -dr com.apple.quarantine "$DEST" 2>/dev/null
+  mkdir -p "$SUPPORTO" && echo "$TIPO" > "$SUPPORTO/installazione-da-completare"
+fi
+
+[ -f "$DEST/Contents/Resources/programma/Trascrivi-Audio.command" ] \
+  || errore "Trascrivi Audio non è installato correttamente: scarica di nuovo lo ZIP e riapri l'app."
+open -a Terminal "$DEST/Contents/Resources/programma/Trascrivi-Audio.command"

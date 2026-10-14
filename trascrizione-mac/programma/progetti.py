@@ -1,13 +1,14 @@
 """Gestione dei progetti di Trascrivi Audio.
 
 Ogni trascrizione è un progetto, con una cartella dedicata «NNN_NomeSenzaSpazi» dentro la
-cartella dei progetti (variabile CARTELLA_PROGETTI). Due file, sempre in quella cartella:
+cartella dei progetti (variabile CARTELLA_PROGETTI, di solito Documenti/Trascrivi Audio/Progetti).
+Due file, sempre in quella cartella:
 
 - elenco-progetti.json   file generale: per ogni progetto numero, nome, cartella e lista dei file;
 - progetto-in-corso.json file temporaneo: i dati del progetto su cui si sta lavorando. Viene
                          scritto quando si apre o si crea un progetto e cancellato alla fine.
 
-I comandi .command lavorano solo sui file del progetto in corso. Uso (dai comandi):
+Il programma lavora solo sui file del progetto in corso. Uso (da Trascrivi-Audio.command):
   progetti.py elenco [--trascritti]   nomi dei progetti, uno per riga (crea il file generale se manca)
   progetti.py crea NOME               nuovo progetto (cartella + file generale + file temporaneo)
   progetti.py seleziona NOME          rende NOME il progetto in corso
@@ -15,6 +16,7 @@ I comandi .command lavorano solo sui file del progetto in corso. Uso (dai comand
   progetti.py campo CHIAVE            un dato del progetto in corso (i file come percorso completo)
   progetti.py stato STATO             aggiorna lo stato del progetto in corso (es. «trascritto»)
   progetti.py chiudi                  cancella il file temporaneo
+  progetti.py migra VECCHIA_CARTELLA  sposta qui i progetti di una versione precedente
 """
 import json
 import os
@@ -23,7 +25,8 @@ import shutil
 import sys
 import time
 
-CARTELLA = os.path.abspath(os.environ.get("CARTELLA_PROGETTI") or "Progetti")
+CARTELLA = os.path.abspath(os.environ.get("CARTELLA_PROGETTI")
+                           or os.path.expanduser("~/Documents/Trascrivi Audio/Progetti"))
 GENERALE = os.path.join(CARTELLA, "elenco-progetti.json")
 IN_CORSO = os.path.join(CARTELLA, "progetto-in-corso.json")
 MASSIMO = 999
@@ -158,9 +161,43 @@ def chiudi():
         os.remove(IN_CORSO)
 
 
+def migra(vecchia):
+    """Sposta nella cartella dei progetti quelli di una versione precedente (altra cartella)."""
+    vecchia = os.path.abspath(vecchia)
+    vecchio_generale = os.path.join(vecchia, "elenco-progetti.json")
+    if vecchia == CARTELLA or not os.path.exists(vecchio_generale):
+        return
+    with open(vecchio_generale, encoding="utf-8") as f:
+        vecchi = json.load(f).get("progetti", [])
+    generale = leggi_generale()
+    if generale["progetti"]:
+        raise Errore(f"Ci sono già progetti nella nuova cartella: quelli precedenti restano in {vecchia}")
+    for p in vecchi:
+        sorgente = p.get("cartella") or ""
+        if not os.path.isdir(sorgente):
+            sorgente = os.path.join(vecchia, os.path.basename(sorgente))
+        if not os.path.isdir(sorgente):
+            continue
+        destinazione = os.path.join(CARTELLA, os.path.basename(sorgente))
+        shutil.move(sorgente, destinazione)
+        p["cartella"] = destinazione
+        generale["progetti"].append(p)
+    generale["progetti"].sort(key=lambda p: p["numero"])
+    scrivi_json(GENERALE, generale)
+    for nome in ("elenco-progetti.json", "progetto-in-corso.json"):
+        if os.path.exists(os.path.join(vecchia, nome)):
+            os.remove(os.path.join(vecchia, nome))
+    try:
+        os.rmdir(vecchia)  # solo se è rimasta vuota
+    except OSError:
+        pass
+    print(f"Progetti spostati in {CARTELLA}: {len(generale['progetti'])}")
+
+
 if __name__ == "__main__":
     comandi = {"elenco": lambda *a: elenco("--trascritti" in a), "crea": crea, "seleziona": seleziona,
-               "imposta-audio": imposta_audio, "campo": campo, "stato": stato, "chiudi": chiudi}
+               "imposta-audio": imposta_audio, "campo": campo, "stato": stato, "chiudi": chiudi,
+               "migra": migra}
     if len(sys.argv) < 2 or sys.argv[1] not in comandi:
         print(__doc__)
         sys.exit(1)
