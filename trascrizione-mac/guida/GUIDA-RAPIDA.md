@@ -214,16 +214,21 @@ modelli e il dizionario delle tue correzioni.
 | Cosa | Dove | Note |
 |---|---|---|
 | L'app | Applicazioni › Trascrivi Audio | si copia lì al primo avvio e lavora sempre da lì |
-| Python | Libreria › Application Support › TrascriviAudio › python | usa il Python del Mac se c'è (3.10 o più recente); altrimenti scarica un Python «portatile» (circa 24 MB), senza password e senza toccare il sistema. Il file scaricato viene verificato con la sua impronta di sicurezza (SHA-256) |
+| Python | Libreria › Application Support › TrascriviAudio › python | usa il Python del Mac se c'è (dalla 3.10 alla 3.13, le versioni adatte a Whisper); altrimenti scarica un Python «portatile» (circa 24 MB), senza password e senza toccare il sistema. Il file scaricato viene verificato con la sua impronta di sicurezza (SHA-256) |
 | Whisper | Libreria › Application Support › TrascriviAudio | circa 300 MB |
 | Modelli large-v3 e medium | stessa cartella | circa 4,5 GB, scaricati una volta sola |
 | Icona sulla Scrivania | Scrivania | collegamento all'app in Applicazioni |
 | Cartella dei progetti | Documenti › Trascrivi Audio | con una copia di questa guida |
 | Versioni precedenti | — | se ce ne sono, i loro file vengono tolti e i progetti spostati in Documenti |
 
-**L'audio non viene mai inviato online**: internet serve solo per scaricare, una volta,
-Python (se manca), Whisper e i modelli. Il programma lavora sempre dalla copia in Applicazioni,
-dentro una finestra del Terminale che mostra cosa sta facendo.
+**L'audio non viene mai inviato online** dal programma: internet serve solo per scaricare, una
+volta, Python (se manca), Whisper e i modelli. Il programma lavora sempre dalla copia in
+Applicazioni, dentro una finestra del Terminale che mostra cosa sta facendo.
+
+**Attenzione a iCloud:** se sul Mac è attiva l'opzione di iCloud Drive **«Cartelle Scrivania e
+Documenti»**, macOS carica su iCloud tutto quello che c'è in Documenti, quindi anche i progetti con
+l'audio. Per tenerli solo sul Mac, disattivala in Impostazioni di Sistema › *il tuo nome* › iCloud ›
+iCloud Drive (i documenti già su iCloud restano su iCloud Drive).
 
 ### 5.2 I progetti e i loro file
 
@@ -261,7 +266,7 @@ trascrizione potrebbe essere sbagliata.
 | Confronto | una parola è **dubbia** se large-v3 non ne è sicuro **oppure** se i due modelli hanno sentito cose diverse |
 | 3° – riascolto con large-v3 | ritaglia solo le frasi con parole dubbie e le fa riascoltare. Se ora sente la stessa cosa di medium, il dubbio è risolto |
 | 4° – riascolto con medium | dove ancora non coincidono, medium riascolta. Se coincide con il riascolto di large-v3, il dubbio è risolto; altrimenti la parola **resta da verificare** |
-| Il tuo dizionario | le parole che hai già corretto vengono sistemate da sole; quelle che hai confermato non vengono più segnate |
+| Il tuo dizionario | quando una parola è di nuovo dubbia: se l'avevi corretta viene sistemata da sola, se l'avevi confermata non viene più segnata. Le parole brevi come e/è, a/ha, o/ho e le coppie come anno/hanno restano invece da controllare, perché dipendono dalla frase. Le parole di cui Whisper è sicuro non vengono mai cambiate |
 
 Per ogni parola che resta dubbia, il programma salva un **ritaglio audio** con 3 secondi prima e
 3 dopo. Nei file di testo le parole dubbie sono segnate così:
@@ -270,7 +275,8 @@ Per ogni parola che resta dubbia, il programma salva un **ritaglio audio** con 3
 - `**parola**`: da controllare per prima, perché i dubbi sono due (sicurezza bassa e modelli in disaccordo).
 
 **Tempi:** da 1 a 3 volte la durata dell'audio, a seconda del Mac (più veloce con i chip Apple M1
-e successivi).
+e successivi). Mentre il programma lavora il Mac non va in stop da solo; se chiudi il coperchio del
+portatile, però, si ferma anche la trascrizione.
 
 ### 5.4 La schermata di controllo
 
@@ -289,14 +295,15 @@ internet e non è raggiungibile da altri computer.
 |---|---|
 | **Salva** | scrive le modifiche nel file delle parole dubbie, aggiorna la **trascrizione corretta**, registra le parole nel tuo **dizionario personale** (correzioni e conferme) e salva gli esempi audio. Poi **ricarica il file**: le parole confermate restano bloccate per sempre |
 | **Annulla** | scarta le modifiche non ancora salvate e mostra di nuovo il contenuto del file |
-| **Chiudi** | chiude la schermata e torna al menu principale. Se ci sono modifiche non salvate, avvisa |
+| **Chiudi** | chiude la schermata e torna al menu principale. Se ci sono modifiche non salvate, avvisa. Se chiudi la scheda del browser senza «Chiudi», dopo pochi secondi si torna comunque al menu |
 
 - Una parola modificata ma **non** confermata viene salvata come bozza: resta tra asterischi e
   potrai confermarla più tardi.
 - Il riquadro blu indica una riga modificata e non ancora salvata.
 - **Cosa vuol dire "registrare" una parola:** Whisper non viene riaddestrato, ma il programma
   ricorda le tue scelte nel **dizionario personale**, comune a tutti i progetti. Nelle trascrizioni
-  successive le parole corrette vengono suggerite a Whisper e sistemate da sole, e quelle
+  successive le parole corrette vengono suggerite a Whisper e, dove sono di nuovo dubbie,
+  sistemate da sole (tranne le parole brevi come e/è, che dipendono dalla frase); quelle
   confermate non vengono più segnate.
 
 ### 5.5 Aggiornare il programma
@@ -312,10 +319,16 @@ nuovo l'app, ripeti i passi 3-5 dell'installazione.
 |---|---|
 | «“Trascrivi Audio” non è stata aperta» | segui i passi 3-5 dell'installazione |
 | Non trovo «Apri comunque» | compare per circa un'ora dopo il tentativo di apertura: rifai doppio clic sull'app e torna in Privacy e sicurezza |
+| «Per aprire "Trascrivi Audio" devi installare Rosetta» | sui Mac con chip Apple può comparire al primo avvio: clicca **Installa** (serve la password del Mac), poi riapri Trascrivi Audio |
+| «Non riesco a creare la cartella dei progetti in Documenti» o «Non ho il permesso di leggere il file» | macOS non permette al Terminale di usare quella cartella: in Impostazioni di Sistema › **Privacy e sicurezza** › **File e cartelle** › **Terminale** attiva la cartella (Documenti, Download o Volumi rimovibili) e riprova |
 | «Download di Python non riuscito» o «non è integro» | controlla la connessione a internet e riapri Trascrivi Audio |
 | L'icona sulla Scrivania non c'è più | apri Trascrivi Audio dalla cartella **Applicazioni**. Per rimettere l'icona, trascina l'app sulla Scrivania tenendo premuti i tasti ⌥ e ⌘ |
 | Ho chiuso la finestra del Terminale | il programma si interrompe: riaprilo dall'icona. Se stava trascrivendo, apri il progetto: la trascrizione riparte |
-| «La cartella del progetto non esiste più» | è stata spostata o rinominata: rimettila in Documenti › Trascrivi Audio › Progetti con il nome originale |
+| «La cartella del progetto non esiste più» | se l'hai spostata o rinominata, rimettila in Documenti › Trascrivi Audio › Progetti con il nome originale; se l'hai cancellata, scegli **Togli dall'elenco** |
+| «Trascrivi Audio è già aperto in un'altra finestra» | il programma si può aprire una volta sola: continua dalla finestra del Terminale già aperta (fai clic sull'icona del Terminale nel Dock) |
+| «Il file … non è un audio leggibile» o «non contiene audio» | il file è rovinato, non è un audio o è un video senza audio: scegline un altro |
+| «Nell'audio non è stato riconosciuto nessun parlato» | il file è muto o non è quello giusto: crea un nuovo progetto con il file giusto |
+| «La trascrizione non è riuscita» | il programma torna al menu; il motivo è scritto nella finestra del Terminale. Puoi riprovare da **Apri un progetto** |
 | La schermata di controllo non si apre | nella finestra del Terminale c'è l'indirizzo da copiare nel browser |
 | L'audio di una riga non parte | usa il link «Apri l'audio» sotto il lettore |
 | Una parola non deve più essere considerata confermata | cancella la sua riga da `dizionario.txt` (vedi 5.7) |
@@ -328,7 +341,8 @@ nuovo l'app, ripeti i passi 3-5 dell'installazione.
 - **Dati del programma:** `~/Library/Application Support/TrascriviAudio` (nel Finder: menu
   Vai → Vai alla cartella…, poi incolla il percorso). Contiene:
   - `python/`, `venv/` e `modelli/`: Python, Whisper e i modelli;
-  - `dizionario.txt`: le tue correzioni e conferme;
+  - `dizionario.txt`: le tue correzioni e conferme, una per riga («sbagliata → giusta»). Puoi
+    modificarlo a mano (al posto di → puoi scrivere ->): le righe che cancelli non ricompaiono;
   - `esempi/`: gli audio corretti, con il testo giusto.
 
 Per disinstallare usa la voce **Disinstalla Trascrivi Audio** del menu (punto 4): toglie tutto

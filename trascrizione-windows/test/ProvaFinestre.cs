@@ -117,6 +117,26 @@ public static class ProvaFinestre
                             new string[] { "OK" }, null, true);
         Verifica("errore: «OK» restituito", e.Pulsante == "OK");
 
+        // 8. Conferma che cancella: il tasto Invio vale "Annulla"; "&" visibile nel testo
+        bool mnemonico = true;
+        string accetta = null;
+        Dopo("w-cancella", delegate(Form f)
+        {
+            mnemonico = ((Label)Trova(f, typeof(Label), null)).UseMnemonic;
+            accetta = ((Button)f.AcceptButton).Text;
+            ((Button)f.AcceptButton).PerformClick();   // come premere Invio
+        });
+        Finestre.Predefinito = "Annulla";
+        e = Finestre.Mostra("Sei sicuro? Il progetto Rossi & Bianchi verra' cancellato.", null, false,
+                            new string[] { "Annulla", "Cancella tutto" }, "Annulla", false);
+        Verifica("conferma che cancella: Invio = Annulla", accetta == "Annulla" && e.Pulsante == null);
+        Verifica("il carattere & resta visibile nei testi", !mnemonico);
+        Verifica("pulsante predefinito usato una sola volta", Finestre.Predefinito == null);
+
+        // 9. Finestra di PowerShell: la selezione con un clic si disattiva senza errori (qui non c'e' Windows)
+        Finestre.BloccaSelezioneConsole();
+        Verifica("selezione della console disattivata senza errori", true);
+
         Console.WriteLine(fallite == 0 ? "FINESTRE: TUTTE LE VERIFICHE SUPERATE" : "FINESTRE: VERIFICHE FALLITE " + fallite);
         return fallite == 0 ? 0 : 1;
     }

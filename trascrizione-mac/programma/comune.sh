@@ -8,6 +8,12 @@ export ESEMPI="$SUPPORTO/esempi"
 # Progetti in Documenti/Trascrivi Audio/Progetti (visibili nel Finder, al sicuro negli aggiornamenti)
 export PYTHONDONTWRITEBYTECODE=1   # niente file di cache di Python dentro l'app in Applicazioni
 export HF_HUB_DISABLE_TELEMETRY=1  # nessuna statistica inviata durante i download dei modelli
+# Python del programma isolato dalle impostazioni di altri programmi; file temporanei dei download
+# nella cartella dei dati, così la disinstallazione toglie tutto
+unset PYTHONHOME PYTHONPATH
+export PYTHONNOUSERSITE=1
+export PIP_CACHE_DIR="${PIP_CACHE_DIR:-$SUPPORTO/cache-pip}"
+export HF_HOME="${HF_HOME:-$SUPPORTO/huggingface}"
 export CARTELLA_DOCUMENTI="${CARTELLA_DOCUMENTI:-$HOME/Documents/Trascrivi Audio}"
 export CARTELLA_PROGETTI="${CARTELLA_PROGETTI:-$CARTELLA_DOCUMENTI/Progetti}"
 
@@ -24,10 +30,11 @@ end run
 EOF
 }
 
-domanda() {  # domanda "messaggio" "pulsante sì" → 0 se confermato, 1 se annullato
-  osascript - "$1" "$2" "$TITOLO" >/dev/null 2>&1 <<'EOF'
+domanda() {  # domanda "messaggio" "pulsante sì" [Annulla] → 0 se confermato, 1 se annullato
+  # (terzo argomento «Annulla»: è il pulsante del tasto Invio, per le conferme che cancellano qualcosa)
+  osascript - "$1" "$2" "$TITOLO" "${3:-$2}" >/dev/null 2>&1 <<'EOF'
 on run argv
-  display dialog (item 1 of argv) buttons {"Annulla", item 2 of argv} default button (item 2 of argv) cancel button "Annulla" with title (item 3 of argv)
+  display dialog (item 1 of argv) buttons {"Annulla", item 2 of argv} default button (item 4 of argv) cancel button "Annulla" with title (item 3 of argv)
 end run
 EOF
 }
@@ -97,13 +104,23 @@ progetto() {
   "$py" "$QUI/progetti.py" "$@"
 }
 
-seleziona_progetto() {  # seleziona_progetto "messaggio" [--trascritti] → rende in corso il progetto scelto; 1 se Annulla
-  local nomi=() r nome msg
-  while IFS= read -r r; do [ -n "$r" ] && nomi+=("$r"); done < <(progetto elenco ${2:-})
+seleziona_progetto() {  # seleziona_progetto "messaggio" [--trascritti] → rende in corso il progetto scelto
+  local nomi=() r nome msg esito  #                    1 se Annulla (o il progetto non si può aprire), 2 se non ce ne sono
+  msg=$(progetto elenco ${2:-} 2>&1) || { avviso "$msg" caution; return 1; }
+  while IFS= read -r r; do [ -n "$r" ] && nomi+=("$r"); done <<< "$msg"
   if [ ${#nomi[@]} -eq 0 ]; then
     return 2
   fi
   nome=$(scegli_dalla_lista "$1" "${nomi[@]}") || return 1
-  msg=$(progetto seleziona "$nome" 2>&1 >/dev/null) || errore "$msg"
-  return 0
+  msg=$(progetto seleziona "$nome" 2>&1 >/dev/null); esito=$?
+  [ "$esito" = 0 ] && return 0
+  if [ "$esito" = 3 ]; then  # la cartella del progetto è stata cancellata, spostata o rinominata
+    scelta "$msg
+
+Se l'hai spostata o rinominata, rimettila in Documenti › Trascrivi Audio › Progetti con il nome di prima. Se l'hai cancellata, puoi togliere il progetto dall'elenco." \
+      "Annulla" "Togli dall'elenco" >/dev/null || return 1
+    msg=$(progetto togli "$nome" 2>&1 >/dev/null) && { avviso "Il progetto «$nome» è stato tolto dall'elenco."; return 1; }
+  fi
+  avviso "$msg" caution
+  return 1
 }

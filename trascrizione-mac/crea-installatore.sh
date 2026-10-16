@@ -55,14 +55,16 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/programma"
 sed "s/@VERSIONE@/$VERSIONE/g" "$QUI/app/Info.plist" > "$APP/Contents/Info.plist"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 cp "$QUI/app/TrascriviAudio" "$APP/Contents/MacOS/TrascriviAudio"
+# Programma vuoto per chip Apple e Intel (vedi app/nativo.c): fa riconoscere l'app come nativa
+cp "$QUI/app/TrascriviAudio-nativo" "$APP/Contents/MacOS/TrascriviAudio-nativo"
 cp "$QUI/app/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 COMUNE="$QUI/../trascrizione-comune"   # file Python in comune con la versione Windows
 cp "$QUI/programma/Trascrivi-Audio.command" "$QUI/programma/comune.sh" "$COMUNE/progetti.py" \
    "$COMUNE/trascrivi_dubbi.py" "$COMUNE/schermata_controllo.py" \
-   "$COMUNE/applica_correzioni.py" "$APP/Contents/Resources/programma/"
+   "$COMUNE/applica_correzioni.py" "$COMUNE/modelli.py" "$APP/Contents/Resources/programma/"
 cp "$GUIDA_PDF" "$APP/Contents/Resources/Guida rapida.pdf"
 echo "$VERSIONE" > "$APP/Contents/Resources/versione.txt"
-chmod 755 "$APP/Contents/MacOS/TrascriviAudio" "$APP/Contents/Resources/programma/Trascrivi-Audio.command"
+chmod 755 "$APP/Contents/MacOS/TrascriviAudio" "$APP/Contents/MacOS/TrascriviAudio-nativo" "$APP/Contents/Resources/programma/Trascrivi-Audio.command"
 python3 -c "import plistlib,sys; plistlib.load(open(sys.argv[1],'rb'))" "$APP/Contents/Info.plist" \
   || { echo "Info.plist non valido." >&2; exit 1; }
 cp "$GUIDA_PDF" "$CARTELLA/Guida rapida.pdf"

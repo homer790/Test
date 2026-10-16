@@ -7,7 +7,8 @@
 #   pulsante OK non consumano risposte. Ogni finestra viene registrata in $LOG.
 # - open: «open -a Terminal FILE» esegue FILE (come il Terminale); «open APP.app» avvia l'app;
 #   gli altri file vengono solo registrati («== aperto: ...»).
-# - ditto (copia), xattr (nessun effetto, registrato).
+# - ditto (copia, registrata), xattr (nessun effetto, registrato).
+# Con BASH_MAC=percorso di una bash 3.2 (quella del Mac) gli script del programma girano con quella.
 
 FINTO="$1"
 mkdir -p "$FINTO/bin"
@@ -32,17 +33,18 @@ OSA
 cat > "$FINTO/bin/open" <<'OPEN'
 #!/bin/bash
 if [ "$1" = "-a" ] && [ "$2" = "Terminal" ]; then
-  echo "== Terminale apre: $(basename "$3")" >> "$LOG"; bash "$3"; exit $?
+  echo "== Terminale apre: $(basename "$3")" >> "$LOG"; "${BASH_MAC:-bash}" "$3"; exit $?
 fi
 [ "$1" = "-n" ] && shift
 case "$1" in
-  *.app) echo "== avvio app: $1" >> "$LOG"; exec "$1/Contents/MacOS/TrascriviAudio" ;;
+  *.app) echo "== avvio app: $1" >> "$LOG"; exec "${BASH_MAC:-bash}" "$1/Contents/MacOS/TrascriviAudio" ;;
   *) echo "== aperto: $1" >> "$LOG" ;;
 esac
 OPEN
 cat > "$FINTO/bin/ditto" <<'DITTO'
 #!/bin/bash
 [ "$1" = "--noqtn" ] && shift
+echo "== ditto $1 → $2" >> "$LOG"
 cp -R "$1" "$2"
 DITTO
 printf '#!/bin/bash\necho "== xattr $*" >> "$LOG"\n' > "$FINTO/bin/xattr"

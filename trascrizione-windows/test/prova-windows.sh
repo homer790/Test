@@ -35,7 +35,8 @@ risposte() { printf '%s\n' "$@" > "$RISPOSTE"; }
 # Python «portatile» finto: un archivio con la cartella python/ (qui un ambiente Python di Linux)
 python3 -m venv "$PROVA/py/python"
 tar -czf "$PROVA/python.tar.gz" -C "$PROVA/py" python
-export PYTHON_PORTATILE_URL="file://$PROVA/python.tar.gz"
+# indirizzo file:// con i caratteri speciali codificati (la cartella di prova può contenerne)
+export PYTHON_PORTATILE_URL=$(python3 -c 'import pathlib, sys; print(pathlib.Path(sys.argv[1]).as_uri())' "$PROVA/python.tar.gz")
 export PYTHON_PORTATILE_SHA256=$(shasum -a 256 "$PROVA/python.tar.gz" | cut -d' ' -f1)
 
 esegui() {  # esegui "descrizione" script.ps1 [opzioni]; output in $PROVA/ultimo.log
@@ -119,6 +120,45 @@ verifica "sempre un solo progetto" [ "$(json "len(d['progetti'])" "$PROGETTI/ele
 verifica "file temporaneo cancellato" non_esiste "$PROGETTI/progetto-in-corso.json"
 
 # ---------------------------------------------------------------------------------------------
+# 3b. Audio non valido (rovinato, video senza audio): il programma chiede un altro file
+CORROTTO="$USERPROFILE/Downloads/audio rovinato.mp3"; head -c 4000 /dev/urandom > "$CORROTTO"
+MUTO="$USERPROFILE/Downloads/video senza audio.mp4"
+ffmpeg -loglevel error -y -f lavfi -i color=c=red:s=160x120:d=1 -c:v libx264 "$MUTO" || cp "$CORROTTO" "$MUTO"
+risposte "Nuovo progetto" "Audio rovinato" "$CORROTTO" "$MUTO" "ANNULLA" "ANNULLA"
+esegui "3b. Audio non valido" "$DEST/TrascriviAudio.ps1"
+verifica "esito 0" [ "$ESITO" = 0 ]
+verifica "audio rovinato rifiutato con un messaggio" eval 'log_giro "3b. Audio" | grep -q "non è un audio leggibile"'
+verifica "video senza audio rifiutato con un messaggio" eval 'log_giro "3b. Audio" | grep -q "non contiene audio"'
+verifica "il programma non si chiude: torna al menu" contiene "$PROVA/ultimo.log" "Arrivederci"
+P3=$(ls -d "$PROGETTI"/*_Audiorovinato)
+verifica "nessun audio non valido copiato nel progetto" eval '[ -z "$(ls "$P3")" ]'
+
+# 3c. Cartella di un progetto cancellata a mano: si può togliere il progetto dall'elenco
+rm -rf "$P3"
+risposte "Apri un progetto" "Audio rovinato" "Togli dall'elenco" "ANNULLA"
+esegui "3c. Cartella cancellata" "$DEST/TrascriviAudio.ps1"
+verifica "esito 0" [ "$ESITO" = 0 ]
+verifica "spiegazione «non esiste più»" eval 'log_giro "3c. Cart" | grep -q "non esiste più"'
+verifica "progetto tolto dall'elenco" eval 'log_giro "3c. Cart" | grep -q "è stato tolto dall.elenco"'
+verifica "di nuovo un solo progetto" [ "$(json "len(d['progetti'])" "$PROGETTI/elenco-progetti.json")" = 1 ]
+verifica "il programma non si chiude: torna al menu" contiene "$PROVA/ultimo.log" "Arrivederci"
+
+# 3d. Trascrivi Audio già aperto in un'altra finestra: la seconda (e l'aggiornamento) si fermano
+export PRESO="$PROVA/mutex-preso"
+pwsh -NoProfile -Command '$m = New-Object System.Threading.Mutex($false, "Local\TrascriviAudio"); [void]$m.WaitOne(); "preso" | Set-Content $env:PRESO; Start-Sleep 120' &
+ALTRA=$!
+for _ in $(seq 1 60); do [ -f "$PRESO" ] && break; sleep 0.5; done
+risposte "ANNULLA"
+esegui "3d. Già aperto" "$DEST/TrascriviAudio.ps1"
+verifica "esito 0" [ "$ESITO" = 0 ]
+verifica "avviso «già aperto»" eval 'log_giro "3d. Gi" | grep -q "già aperto in un.altra finestra"'
+verifica "nessun menu nella seconda finestra" eval '! log_giro "3d. Gi" | grep -q "Cosa vuoi fare?"'
+esegui "3e. Aggiornamento con il programma aperto" "$ESTRATTA/programma/TrascriviAudio.ps1" -Installa
+verifica "aggiornamento fermato con la spiegazione" eval 'log_giro "3e. Agg" | grep -q "chiudilo"'
+verifica "programma installato non toccato" [ -f "$DEST/TrascriviAudio.ps1" ]
+kill "$ALTRA"; wait "$ALTRA" 2>/dev/null
+
+# ---------------------------------------------------------------------------------------------
 # 4. Aggiornamento: nuovo ZIP estratto altrove, doppio clic su «Installa Trascrivi Audio»
 mkdir -p "$USERPROFILE/Downloads/nuova" && (cd "$USERPROFILE/Downloads/nuova" && unzip -q "$ZIP")
 risposte "ANNULLA"
@@ -127,6 +167,26 @@ verifica "esito 0" [ "$ESITO" = 0 ]
 verifica "avviso «Aggiornamento completato»" eval 'log_giro "4. Agg" | grep -q "Aggiornamento completato"'
 verifica "nessuna reinstallazione di Whisper" non_contiene "$PROVA/ultimo.log" "Installo Whisper"
 verifica "progetti conservati" [ -d "$P1" ]
+
+# ---------------------------------------------------------------------------------------------
+# 4b. Backup di OneDrive attivato dopo l'installazione: Windows sposta Documenti in OneDrive
+#     insieme ai progetti; il programma li ritrova e li riporta in una cartella non sincronizzata
+ONEDRIVE_DOC="$USERPROFILE/OneDrive/Documenti"
+VECCHI_DOCUMENTI="$TRASCRIVI_DOCUMENTI"
+mkdir -p "$ONEDRIVE_DOC" && mv "$TRASCRIVI_DOCUMENTI/Trascrivi Audio" "$ONEDRIVE_DOC/"
+export OneDrive="$USERPROFILE/OneDrive" TRASCRIVI_DOCUMENTI="$ONEDRIVE_DOC"
+risposte "Apri un progetto" "Intervista Rossi" "Analisi delle parole" "ANNULLA"
+esegui "4b. OneDrive attivato dopo l'installazione" "$DEST/TrascriviAudio.ps1"
+verifica "esito 0" [ "$ESITO" = 0 ]
+LOCALE="$USERPROFILE/Trascrivi Audio/Progetti"
+verifica "avviso che spiega lo spostamento" eval 'log_giro "4b. One" | grep -q "che OneDrive non sincronizza"'
+verifica "progetti riportati fuori da OneDrive" [ -f "$LOCALE/000_IntervistaRossi/000_IntervistaRossi_audio.mp3" ]
+verifica "niente più progetti in OneDrive" non_esiste "$ONEDRIVE_DOC/Trascrivi Audio/Progetti/000_IntervistaRossi"
+verifica "il progetto si apre dalla nuova cartella" \
+  contiene "$PROVA/ultimo.log" "SCHERMATA (test): $LOCALE/000_IntervistaRossi/000_IntervistaRossi_controllo.txt"
+verifica "nuova cartella memorizzata" contiene "$SUPPORTO/cartella-progetti.txt" "$USERPROFILE/Trascrivi Audio"
+verifica "nessuna cartella vuota ricreata nei vecchi Documenti" non_esiste "$VECCHI_DOCUMENTI/Trascrivi Audio"
+P1="$LOCALE/000_IntervistaRossi"; PROGETTI="$LOCALE"
 
 # ---------------------------------------------------------------------------------------------
 # 5. Disinstalla dal menu, conservando i progetti
@@ -149,7 +209,7 @@ risposte "Cancella anche i progetti" "Cancella tutto"
 esegui "6b. Disinstalla da App installate (cancella tutto)" "$DEST/TrascriviAudio.ps1" -Disinstalla
 verifica "esito 0" [ "$ESITO" = 0 ]
 verifica "programma tolto" non_esiste "$DEST"
-verifica "progetti cancellati" non_esiste "$TRASCRIVI_DOCUMENTI/Trascrivi Audio"
+verifica "progetti cancellati" non_esiste "$USERPROFILE/Trascrivi Audio"
 verifica "dati del programma tolti" non_esiste "$SUPPORTO"
 
 # ---------------------------------------------------------------------------------------------

@@ -14,11 +14,41 @@ public static class Finestre
 {
     public static string Titolo = "Trascrivi Audio";
     public static string Icona = null;   // file .ico dell'app
+    // Pulsante attivato da Invio nella prossima finestra (es. "Annulla" per le conferme che
+    // cancellano qualcosa); null = l'ultimo pulsante. Vale per una sola finestra.
+    public static string Predefinito = null;
 
     static float scala = 1f;             // DPI dello schermo / 96
 
     [DllImport("user32.dll")]
     static extern bool SetProcessDPIAware();
+
+    [DllImport("kernel32.dll")]
+    static extern IntPtr GetStdHandle(int quale);
+
+    [DllImport("kernel32.dll")]
+    static extern bool GetConsoleMode(IntPtr console, out uint modo);
+
+    [DllImport("kernel32.dll")]
+    static extern bool SetConsoleMode(IntPtr console, uint modo);
+
+    // Nella finestra di PowerShell un clic avvia la selezione del testo e mette in pausa il
+    // programma (anche una trascrizione) finche' non si preme un tasto: la selezione si disattiva.
+    public static void BloccaSelezioneConsole()
+    {
+        try
+        {
+            IntPtr ingresso = GetStdHandle(-10);   // STD_INPUT_HANDLE
+            uint modo;
+            if (GetConsoleMode(ingresso, out modo))
+            {
+                modo &= ~0x0040u;                  // ENABLE_QUICK_EDIT_MODE
+                modo |= 0x0080u;                   // ENABLE_EXTENDED_FLAGS
+                SetConsoleMode(ingresso, modo);
+            }
+        }
+        catch (Exception) { }
+    }
 
     public class Esito
     {
@@ -43,7 +73,8 @@ public static class Finestre
     static int S(int px) { return (int)Math.Round(px * scala); }
 
     // Finestra generica: testo, eventuale lista di scelte (pulsanti di opzione), eventuale campo
-    // di testo e pulsanti in basso a destra (l'ultimo e' quello principale, attivato da Invio).
+    // di testo e pulsanti in basso a destra (quello principale, attivato da Invio, e' l'ultimo
+    // oppure quello indicato in Predefinito).
     public static Esito Mostra(string testo, string[] voci, bool conCampo, string[] pulsanti,
                                string annulla, bool errore)
     {
@@ -95,6 +126,7 @@ public static class Finestre
         contenuto.Margin = new Padding(0);
 
         Label etichetta = new Label();
+        etichetta.UseMnemonic = false;   // "&" si vede (es. un progetto "Rossi & Bianchi")
         etichetta.Text = testo;
         etichetta.AutoSize = true;
         etichetta.MaximumSize = new Size(S(520), 0);
@@ -122,6 +154,7 @@ public static class Finestre
             for (int i = 0; i < quante; i++)
             {
                 RadioButton r = new RadioButton();
+                r.UseMnemonic = false;
                 r.Text = voci[i];
                 r.AutoSize = true;
                 r.Margin = new Padding(S(6), S(3), 0, S(3));
@@ -149,9 +182,13 @@ public static class Finestre
         barra.AutoSizeMode = AutoSizeMode.GrowAndShrink;
         barra.Dock = DockStyle.Fill;
         barra.Margin = new Padding(0, S(18), 0, 0);
+        string principale = Predefinito != null ? Predefinito : pulsanti[pulsanti.Length - 1];
+        Predefinito = null;
+        Button predefinito = null;
         for (int i = pulsanti.Length - 1; i >= 0; i--)
         {
             Button b = new Button();
+            b.UseMnemonic = false;
             b.Text = pulsanti[i];
             b.AutoSize = true;
             b.AutoSizeMode = AutoSizeMode.GrowAndShrink;
@@ -163,7 +200,7 @@ public static class Finestre
                 f.Tag = ((Button)mittente).Text;
                 f.Close();
             };
-            if (i == pulsanti.Length - 1) f.AcceptButton = b;
+            if (pulsanti[i] == principale) { f.AcceptButton = b; predefinito = b; }
             if (annulla != null && pulsanti[i] == annulla) f.CancelButton = b;
             barra.Controls.Add(b);
         }
@@ -175,6 +212,7 @@ public static class Finestre
         {
             f.Activate();
             if (campo != null) campo.Focus();
+            else if (predefinito != null && quante == 0) predefinito.Focus();
         };
         f.ShowDialog();
 

@@ -25,7 +25,9 @@ EOF
 if [ "$APP" != "$DEST" ]; then
   if [ -d "$DEST" ]; then TIPO="aggiornamento"; else TIPO="installazione"; fi
   NUOVO="$DEST.nuovo"
-  if ! { rm -rf "$NUOVO" && ditto --noqtn "$APP" "$NUOVO" && rm -rf "$DEST" && mv "$NUOVO" "$DEST"; } 2>/dev/null; then
+  if diff -rq "$APP" "$DEST" >/dev/null 2>&1; then
+    :  # in Applicazioni c'è già questa stessa versione (es. doppio clic ripetuto): niente da copiare
+  elif ! { rm -rf "$NUOVO" && ditto --noqtn "$APP" "$NUOVO" && rm -rf "$DEST" && mv "$NUOVO" "$DEST"; } 2>/dev/null; then
     rm -rf "$NUOVO" 2>/dev/null
     # Applicazioni non scrivibile: la copia la fa macOS dopo aver chiesto la password
     osascript - "$APP" "$DEST" >/dev/null 2>&1 <<'EOF' || errore "Non sono riuscito a copiare Trascrivi Audio nella cartella Applicazioni."
@@ -36,9 +38,12 @@ on run argv
 end run
 EOF
   fi
-  xattr -dr com.apple.quarantine "$DEST" 2>/dev/null
-  mkdir -p "$SUPPORTO" && echo "$TIPO" > "$SUPPORTO/installazione-da-completare"
+  # (un'installazione non ancora completata resta tale: il marcatore che c'è già non si cambia)
+  mkdir -p "$SUPPORTO" && { [ -f "$SUPPORTO/installazione-da-completare" ] || echo "$TIPO" > "$SUPPORTO/installazione-da-completare"; }
 fi
+# Sempre, anche per un'app trascinata a mano in Applicazioni: senza il blocco «scaricato da
+# internet» macOS non chiede una seconda conferma per il programma aperto nel Terminale
+xattr -dr com.apple.quarantine "$DEST" 2>/dev/null
 
 [ -f "$DEST/Contents/Resources/programma/Trascrivi-Audio.command" ] \
   || errore "Trascrivi Audio non è installato correttamente: scarica di nuovo lo ZIP e riapri l'app."

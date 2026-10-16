@@ -19,15 +19,23 @@ non si collega a internet (`HF_HUB_OFFLINE=1`) e non invia statistiche (`HF_HUB_
    «clic destro → Apri» non basta più. La guida mostra i passi con le immagini.
 3. **Il lanciatore** (`Contents/MacOS/TrascriviAudio`):
    - se l'app non è in `/Applications`, vi si copia (`ditto --noqtn`), sostituendo un'eventuale
-     versione precedente, e toglie il blocco «scaricato da internet». Se Applicazioni non è
+     versione precedente (non se è identica, es. doppio clic ripetuto). Se Applicazioni non è
      scrivibile, macOS chiede la password;
+   - toglie sempre il blocco «scaricato da internet» dalla copia in Applicazioni (anche se l'app
+     ci è stata trascinata a mano), così macOS non chiede una seconda conferma per il programma;
    - poi apre nel **Terminale** il programma della copia in Applicazioni. La finestra del Terminale
      mostra l'avanzamento.
 4. **Il programma** (`Contents/Resources/programma/Trascrivi-Audio.command`):
+   - si apre **una volta sola**: se è già aperto in un'altra finestra del Terminale (blocco
+     `in-uso` in `Application Support`, con il numero del processo) la seconda finestra si chiude;
    - prepara tutto **senza domande**, solo se manca qualcosa:
-     - **Python:** quello del Mac (3.10+) oppure il **Python portatile** 3.12.15
+     - **Python:** quello del Mac, se è tra la 3.10 e la 3.13 (per le versioni più nuove alcuni
+       componenti di Whisper non sono ancora disponibili) ed è nativo per il processore del Mac
+       (un Python per Intel copiato su un Mac con chip Apple richiederebbe Rosetta), oppure il
+       **Python portatile** 3.12.15
        (python-build-standalone 20261013), scaricato in `Application Support` senza password e
-       verificato con SHA-256;
+       verificato con SHA-256. Se con il Python del Mac l'installazione di Whisper non riesce, il
+       programma passa da solo al Python portatile;
      - **Whisper** in un ambiente virtuale;
      - i **modelli** large-v3 e medium;
    - alla prima installazione o dopo un aggiornamento:
@@ -35,8 +43,10 @@ non si collega a internet (`HF_HUB_OFFLINE=1`) e non invia statistiche (`HF_HUB_
      - toglie i file delle versioni precedenti e ne sposta i progetti in Documenti;
    - mostra il **menu principale** (si torna lì dopo ogni operazione):
      - **Nuovo progetto:** nome → `Documenti/Trascrivi Audio/Progetti/NNN_Nome` → audio,
-       copiato nel progetto → trascrizione → schermata di controllo;
-     - **Apri un progetto:** lista → **Analisi delle parole** oppure **Rielabora la trascrizione**;
+       controllato (un file rovinato o senza audio viene rifiutato) e copiato nel progetto →
+       trascrizione → schermata di controllo;
+     - **Apri un progetto:** lista → **Analisi delle parole** oppure **Rielabora la trascrizione**
+       (se la cartella del progetto è stata cancellata si può **togliere dall'elenco**);
      - **Guida rapida**;
      - **Disinstalla Trascrivi Audio:** chiede conferma e se conservare i progetti;
      - **Esci**.
@@ -56,7 +66,8 @@ non si collega a internet (`HF_HUB_OFFLINE=1`) e non invia statistiche (`HF_HUB_
 | Percorso | Contenuto |
 |---|---|
 | `app/TrascriviAudio` | lanciatore dell'app (diventa `Contents/MacOS/TrascriviAudio`) |
-| `app/Info.plist` | dati dell'app (`@VERSIONE@` viene sostituito alla creazione) |
+| `app/Info.plist` | dati dell'app (`@VERSIONE@` viene sostituito alla creazione; `LSArchitecturePriority` arm64) |
+| `app/nativo.c`, `app/TrascriviAudio-nativo` | programma vuoto per chip Apple e Intel, messo in `Contents/MacOS`: con un lanciatore che è uno script, macOS potrebbe considerare l'app «per Intel» e chiedere di installare Rosetta. Creato con Zig 0.14.1: `zig cc -target aarch64-macos.11.0 -Os` e `-target x86_64-macos.11.0`, poi `llvm-lipo -create` |
 | `app/icona.svg`, `app/icona.png`, `app/AppIcon.icns` | icona: disegno, immagine 1024×1024 (`node app/crea-icona.js`), formato Mac |
 | `programma/Trascrivi-Audio.command` | il programma: preparazione, menu, progetti, trascrizione, disinstallazione |
 | `programma/comune.sh` | finestre di dialogo, menu, scelta del progetto, percorsi |
@@ -109,7 +120,7 @@ I file Python sono nella cartella `trascrizione-comune`, in comune con la versio
 
 | Prova | Cosa verifica |
 |---|---|
-| `test/prova-app.sh file_audio` | 7 scenari, dallo ZIP alla disinstallazione, su un «Mac» senza Python e con una versione precedente installata: installazione senza domande (Python portatile, Whisper, modelli, icona, pulizia e spostamento dei vecchi progetti), nuovo progetto, avvio dall'icona, analisi e rielaborazione, guida, nome duplicato e Annulla, aggiornamento, disinstallazione conservando o cancellando i progetti, Python scaricato corrotto |
+| `test/prova-app.sh file_audio` | 11 scenari, dallo ZIP alla disinstallazione, su un «Mac» senza Python adatto e con una versione precedente installata: installazione senza domande (Python del Mac troppo nuovo ignorato, Python portatile, Whisper, modelli, icona, pulizia e spostamento dei vecchi progetti), nuovo progetto, avvio dall'icona, analisi e rielaborazione, guida, nome duplicato e Annulla, audio rovinato o senza audio, cartella di un progetto cancellata, programma già aperto in un'altra finestra, aggiornamento, disinstallazione conservando o cancellando i progetti, Python del Mac che non installa Whisper, Python scaricato corrotto |
 | `test/prova-schermata.js` | la schermata di controllo in un vero browser (Playwright): token, paginazione, audio con Range (Safari), conferma e blocco, Annulla, Salva e ricaricamento |
 
 ## Da verificare su un Mac vero
@@ -117,6 +128,7 @@ I file Python sono nella cartella `trascrizione-comune`, in comune con la versio
 Le prove girano su Linux con le finestre simulate. Su un Mac vanno verificati:
 
 - lo sblocco di Gatekeeper;
+- su un Mac con chip Apple senza Rosetta: che non compaia la richiesta di installare Rosetta;
 - le richieste di permesso per Documenti, Scrivania e Download;
 - il download del Python portatile da GitHub;
 - l'aggiornamento e la disinstallazione dell'app in Applicazioni.

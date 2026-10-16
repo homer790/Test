@@ -39,6 +39,7 @@ GUIDA="$QUI/../Guida rapida.pdf"
 SCRIVANIA="$HOME/Desktop"
 COLLEGAMENTO="$SCRIVANIA/Trascrivi Audio"
 MARCATORE="$SUPPORTO/installazione-da-completare"   # scritto dall'app quando si installa o si aggiorna
+BLOCCO="$SUPPORTO/in-uso"   # c'è mentre il programma è aperto (con il numero del processo)
 
 # Impostazioni modificabili (anche da Terminale, es. SOGLIA=0.7)
 export MODELLO_A="${MODELLO_A:-large-v3}"   # trascrizione principale
@@ -51,6 +52,8 @@ export CARTELLA_MODELLI="$SUPPORTO/modelli"
 
 # Python portatile (python-build-standalone), scaricato solo se sul Mac non c'è un Python adatto
 PYTHON_PORTATILE="$SUPPORTO/python"
+# Architettura del Mac: arm64 sui chip Apple (anche se il Terminale è aperto con Rosetta)
+if [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ]; then ARCH=arm64; else ARCH=$(uname -m); fi
 PYTHON_RILASCIO="20261013"
 PYTHON_VERSIONE="3.12.15"
 
@@ -59,14 +62,17 @@ PYTHON_VERSIONE="3.12.15"
 # ============================================================================================
 
 trova_python() {
-  # PYTHON_CANDIDATI permette ai test di simulare un Mac senza Python
+  # Python dalla 3.10 alla 3.13: per le versioni più nuove alcuni componenti di Whisper non sono
+  # ancora pronti (verificato a ottobre 2026) e verrebbe usato il Python portatile.
+  # PYTHON_CANDIDATI permette ai test di simulare un Mac senza Python (o con un Python diverso)
   for p in "$PYTHON_PORTATILE/bin/python3" ${PYTHON_CANDIDATI-/opt/homebrew/bin/python3 /usr/local/bin/python3 \
            /Library/Frameworks/Python.framework/Versions/Current/bin/python3 /usr/bin/python3}; do
     # /usr/bin/python3 esiste anche senza Command Line Tools ma non funziona: controlliamo prima.
     if [ "$p" = /usr/bin/python3 ] && [ "$(uname)" = Darwin ] && ! xcode-select -p >/dev/null 2>&1; then
       continue
     fi
-    if [ -x "$p" ] && "$p" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
+    # (e nativo per questo Mac: un Python per Intel sui chip Apple funzionerebbe solo con Rosetta)
+    if [ -x "$p" ] && "$p" -c "import platform, sys; sys.exit(0 if (3, 10) <= sys.version_info[:2] <= (3, 13) and platform.machine() == '$ARCH' else 1)" 2>/dev/null; then
       echo "$p"
       return 0
     fi
@@ -76,10 +82,10 @@ trova_python() {
 
 installa_python_portatile() {
   local arch sha url tmp
-  case "$(uname -m)" in
+  case "$ARCH" in
     arm64|aarch64) arch=aarch64; sha=ba32036ad8f4c434d97a1ee7feef8b7edc0fac16777639b97e39c74a108e4440 ;;
     x86_64)        arch=x86_64;  sha=9686ddd8639b855905447ea4a16eb54a804a9ef12afbe7c9ecb1412d9c1fbc98 ;;
-    *) errore "Processore non riconosciuto ($(uname -m)): non posso installare Python." ;;
+    *) errore "Processore non riconosciuto ($ARCH): non posso installare Python." ;;
   esac
   url="https://github.com/astral-sh/python-build-standalone/releases/download/$PYTHON_RILASCIO/cpython-$PYTHON_VERSIONE%2B$PYTHON_RILASCIO-$arch-apple-darwin-install_only.tar.gz"
   url="${PYTHON_PORTATILE_URL:-$url}"; sha="${PYTHON_PORTATILE_SHA256:-$sha}"   # i test usano un file locale
@@ -97,55 +103,57 @@ installa_python_portatile() {
   echo "Python portatile installato."
 }
 
-whisper_installato() {
-  [ -x "$VENV/bin/python" ] && "$VENV/bin/python" -c 'import faster_whisper' 2>/dev/null
+python_nativo() {  # python_nativo PYTHON → 0 se funziona ed è nativo per questo Mac
+  [ -x "$1" ] && "$1" -c "import platform, sys; sys.exit(0 if platform.machine() == '$ARCH' else 1)" 2>/dev/null
+}
+
+whisper_installato() {  # (un ambiente copiato da un Mac Intel con Migrazione Assistita va rifatto)
+  python_nativo "$VENV/bin/python" && "$VENV/bin/python" -c 'import faster_whisper' 2>/dev/null
 }
 
 modelli_mancanti() {  # stampa i modelli non ancora scaricati, uno per riga
-  "$VENV/bin/python" - "$CARTELLA_MODELLI" "$@" 2>/dev/null <<'EOF'
-import sys
-from faster_whisper import download_model
-for nome in dict.fromkeys(sys.argv[2:]):
-    try:
-        download_model(nome, cache_dir=sys.argv[1], local_files_only=True)
-    except Exception:
-        print(nome)
-EOF
+  "$VENV/bin/python" "$QUI/modelli.py" mancanti "$@" 2>/dev/null
 }
 
-scarica_modello() {
-  "$VENV/bin/python" - "$1" "$CARTELLA_MODELLI" <<'EOF'
-import sys
-from faster_whisper import download_model
-download_model(sys.argv[1], cache_dir=sys.argv[2])
-EOF
+scarica_modello() {  # mostra l'avanzamento del download
+  "$VENV/bin/python" "$QUI/modelli.py" scarica "$1"
+}
+
+installa_whisper() {  # installa_whisper PYTHON → crea l'ambiente di Whisper con quel Python; 1 se non riesce
+  echo "Python: $1"
+  echo "Installo Whisper (circa 300 MB, alcuni minuti)..."
+  rm -rf "$VENV"  # un'installazione precedente non riuscita va rifatta da capo
+  "$1" -m venv "$VENV" || return 1
+  "$VENV/bin/python" -m pip install --upgrade pip || return 1
+  # Versioni provate: av<19 (PyAV 19 ha tolto un'opzione usata da faster-whisper 1.2, errore
+  # «metadata_errors») e huggingface_hub<3; truststore fa usare i certificati del Mac nei download
+  "$VENV/bin/python" -m pip install "faster-whisper==1.2.1" "av<19" "huggingface_hub<3" truststore || return 1
+  whisper_installato
 }
 
 prepara() {
   local python m
-  mkdir -p "$SUPPORTO" "$CARTELLA_PROGETTI" || errore "Non riesco a creare le cartelle del programma."
+  mkdir -p "$CARTELLA_PROGETTI" || errore "Non riesco a creare la cartella dei progetti in Documenti.
+
+Probabilmente macOS non permette al Terminale di usare la cartella Documenti: in Impostazioni di Sistema › Privacy e sicurezza › File e cartelle › Terminale attiva «Cartella Documenti», poi riapri Trascrivi Audio."
 
   if ! whisper_installato; then
     python=$(trova_python)
-    if [ -z "$python" ]; then
-      installa_python_portatile
-      python="$PYTHON_PORTATILE/bin/python3"
+    if [ -n "$python" ] && [ "$python" != "$PYTHON_PORTATILE/bin/python3" ]; then
+      installa_whisper "$python" \
+        || echo "Con il Python di questo Mac Whisper non si installa: uso il Python portatile."
     fi
-    echo "Python: $python"
-    echo "Installo Whisper (circa 300 MB, alcuni minuti)..."
-    rm -rf "$VENV"  # un'installazione precedente non riuscita va rifatta da capo
-    "$python" -m venv "$VENV" || errore "Impossibile creare l'ambiente di Whisper."
-    "$VENV/bin/python" -m pip install --upgrade pip || errore "Installazione di Whisper non riuscita (controlla la connessione a internet)."
-    # av<19: PyAV 19 ha tolto un'opzione usata da faster-whisper 1.2 (errore «metadata_errors»)
-    "$VENV/bin/python" -m pip install faster-whisper "av<19" \
-      || errore "Installazione di Whisper non riuscita (controlla la connessione a internet)."
-    whisper_installato || errore "Whisper risulta installato ma non si avvia."
+    if ! whisper_installato; then
+      python_nativo "$PYTHON_PORTATILE/bin/python3" || installa_python_portatile
+      installa_whisper "$PYTHON_PORTATILE/bin/python3" \
+        || errore "Installazione di Whisper non riuscita: controlla la connessione a internet e lo spazio libero sul disco (i dettagli sono nella finestra del Terminale)."
+    fi
     echo "Whisper installato."
   fi
 
   for m in $(modelli_mancanti "$MODELLO_A" "$MODELLO_B" "$MODELLO_C"); do
     echo "Scarico il modello $m (una volta sola, può volerci un po')..."
-    scarica_modello "$m" || errore "Download del modello $m non riuscito (controlla la connessione a internet)."
+    scarica_modello "$m" || errore "Download del modello $m non riuscito: controlla la connessione a internet e lo spazio libero sul disco (circa 5 GB), poi riapri Trascrivi Audio."
   done
 }
 
@@ -176,14 +184,17 @@ pulisci_versioni_precedenti() {
 }
 
 completa_installazione() {
-  local tipo
+  local tipo icona
   if [ -f "$MARCATORE" ]; then tipo=$(cat "$MARCATORE"); else tipo=""; fi
   [ -n "$tipo" ] || return 0
   pulisci_versioni_precedenti
+  icona="• Sulla Scrivania trovi l'icona «Trascrivi Audio»: aprila ogni volta che vuoi usare il programma."
   if [ -n "$APP" ]; then
-    if [ -L "$COLLEGAMENTO" ] || [ ! -e "$COLLEGAMENTO" ]; then
-      mkdir -p "$SCRIVANIA"
-      ln -sfn "$APP" "$COLLEGAMENTO" || echo "Attenzione: non sono riuscito a creare l'icona sulla Scrivania."
+    if { [ -L "$COLLEGAMENTO" ] || [ ! -e "$COLLEGAMENTO" ]; } && mkdir -p "$SCRIVANIA" && ln -sfn "$APP" "$COLLEGAMENTO"; then
+      :
+    else
+      echo "Attenzione: non sono riuscito a creare l'icona sulla Scrivania."
+      icona="• Non sono riuscito a mettere l'icona sulla Scrivania: apri Trascrivi Audio dalla cartella Applicazioni."
     fi
   fi
   [ -f "$GUIDA" ] && cp -f "$GUIDA" "$CARTELLA_DOCUMENTI/Guida rapida.pdf"
@@ -196,7 +207,7 @@ Documenti › Trascrivi Audio › Progetti"
   else
     avviso "Installazione completata.
 
-• Sulla Scrivania trovi l'icona «Trascrivi Audio»: aprila ogni volta che vuoi usare il programma.
+$icona
 • I progetti verranno salvati in Documenti › Trascrivi Audio › Progetti.
 • La guida è in Documenti › Trascrivi Audio › Guida rapida.pdf.
 
@@ -208,12 +219,15 @@ Ora si apre il menu principale."
 # 2. Progetti
 # ============================================================================================
 
-scegli_audio() {  # chiede l'audio sorgente e lo copia nel progetto in corso; 1 se Annulla
+scegli_audio() {  # chiede l'audio sorgente, lo controlla e lo copia nel progetto in corso; 1 se Annulla
   local sorgente msg
-  sorgente=$(osascript -e 'POSIX path of (choose file with prompt "Scegli il file audio (o video) da trascrivere:")' 2>/dev/null) \
-    || return 1
-  echo "Copio l'audio nel progetto..."
-  msg=$(progetto imposta-audio "$sorgente" 2>&1 >/dev/null) || errore "$msg"
+  while :; do
+    sorgente=$(osascript -e 'POSIX path of (choose file with prompt "Scegli il file audio (o video) da trascrivere:")' 2>/dev/null) \
+      || return 1
+    echo "Copio l'audio nel progetto..."
+    msg=$(progetto imposta-audio "$sorgente" 2>&1 >/dev/null) && return 0
+    avviso "$msg" caution  # file rovinato, senza audio...: se ne sceglie un altro
+  done
 }
 
 nuovo_progetto() {
@@ -231,7 +245,7 @@ Scrivi il nome del nuovo progetto:"
 }
 
 apri_progetto() {
-  local nome cosa audio
+  local nome cosa audio msg
   seleziona_progetto "Scegli il progetto da aprire:"
   case $? in
     1) return 0 ;;
@@ -249,12 +263,16 @@ apri_progetto() {
     fi
     domanda "Rielaborare la trascrizione del progetto «$nome»?
 
-La trascrizione e le parole da controllare verranno rifatte da capo: le correzioni fatte in questo progetto andranno perse (il tuo dizionario personale resta e verrà usato)." "Rielabora" \
+La trascrizione e le parole da controllare verranno rifatte da capo: le correzioni fatte in questo progetto andranno perse (il tuo dizionario personale resta e verrà usato)." "Rielabora" "Annulla" \
       || return 0
   else
     avviso "Il progetto «$nome» non ha ancora una trascrizione completa: la avvio ora."
   fi
   audio=$(progetto campo audio)
+  if [ -n "$audio" ] && [ -f "$audio" ] && ! msg=$(progetto controlla-audio "$audio" 2>&1 >/dev/null); then
+    avviso "$msg" caution  # es. un audio rovinato, scelto con una versione precedente del programma
+    audio=""
+  fi
   if [ -z "$audio" ] || [ ! -f "$audio" ]; then
     scegli_audio || return 0
   fi
@@ -280,11 +298,22 @@ trascrivi_progetto() {
   echo "Non chiudere questa finestra: qui vedi l'avanzamento della trascrizione."
 
   # I modelli sono già sul computer: durante la trascrizione nessun collegamento a internet
-  HF_HUB_OFFLINE=1 "$VENV/bin/python" "$QUI/trascrivi_dubbi.py" "$audio" "$trascrizione" "$controllo" "$dati" "$clip" \
-    || errore "La trascrizione non è riuscita."
+  if ! HF_HUB_OFFLINE=1 "$VENV/bin/python" "$QUI/trascrivi_dubbi.py" "$audio" "$trascrizione" "$controllo" "$dati" "$clip"; then
+    echo "ERRORE: la trascrizione non è riuscita."
+    avviso "La trascrizione del progetto «$nome» non è riuscita.
+
+Dettagli nella finestra del Terminale. Puoi riprovare da «Apri un progetto»." stop
+    return 0
+  fi
   progetto stato trascritto
 
   quante=$(grep -m1 '^Parole da riverificare:' "$controllo" | sed 's/^Parole da riverificare: //')
+  if [ "${quante##* }" = "0" ]; then  # «0 su 0»: nessuna parola riconosciuta
+    avviso "Trascrizione del progetto «$nome» completata, ma nell'audio non è stato riconosciuto nessun parlato.
+
+Controlla di aver scelto il file giusto e che l'audio non sia muto." caution
+    return 0
+  fi
   if [ "${quante%% *}" = "0" ]; then
     avviso "Trascrizione del progetto «$nome» completata.
 
@@ -304,7 +333,10 @@ Ora si apre nel browser la schermata di controllo delle parole: ascolta ogni rit
 analisi_parole() {
   local controllo
   controllo=$(progetto campo controllo)
-  [ -f "$controllo" ] || errore "Il progetto «$(progetto campo nome)» non ha ancora parole da controllare: rielabora prima la trascrizione."
+  if [ ! -f "$controllo" ]; then
+    avviso "Il progetto «$(progetto campo nome)» non ha ancora parole da controllare: rielabora prima la trascrizione." caution
+    return 0
+  fi
   echo
   echo "Progetto: $(progetto campo numero) – $(progetto campo nome)"
   if [ -n "${SALTA_SCHERMATA:-}" ]; then  # usato solo dai test automatici
@@ -314,7 +346,9 @@ analisi_parole() {
   echo "Apro la schermata di controllo nel browser."
   echo "Quando hai finito premi «Chiudi» nella pagina: tornerai al menu principale."
   "$VENV/bin/python" "$QUI/schermata_controllo.py" "$controllo" \
-    || errore "La schermata di controllo si è chiusa con un errore."
+    || avviso "La schermata di controllo si è chiusa con un errore.
+
+Dettagli nella finestra del Terminale." stop
 }
 
 # ============================================================================================
@@ -343,7 +377,7 @@ I progetti (audio e trascrizioni) sono in Documenti › Trascrivi Audio: puoi co
     "Annulla" "Cancella anche i progetti" "Conserva i progetti") || return 0
   if [ "$risposta" = "Cancella anche i progetti" ]; then
     domanda "Sei sicuro? Tutti i progetti, con audio e trascrizioni, verranno cancellati definitivamente." \
-      "Cancella tutto" || return 0
+      "Cancella tutto" "Annulla" || return 0
   fi
   echo "Disinstallo Trascrivi Audio..."
   progetto chiudi >/dev/null 2>&1
@@ -355,13 +389,16 @@ I progetti (audio e trascrizioni) sono in Documenti › Trascrivi Audio: puoi co
   else
     rm -f "$CARTELLA_DOCUMENTI/Guida rapida.pdf"
   fi
-  rimuovi_app
+  local resta=""
+  rimuovi_app || resta="
+
+L'app «Trascrivi Audio» però è rimasta nella cartella Applicazioni: trascinala nel Cestino."
   if [ "$risposta" = "Cancella anche i progetti" ]; then
-    avviso "Trascrivi Audio è stato disinstallato, insieme ai progetti."
+    avviso "Trascrivi Audio è stato disinstallato, insieme ai progetti.$resta"
   else
     avviso "Trascrivi Audio è stato disinstallato.
 
-I progetti sono stati conservati in Documenti › Trascrivi Audio › Progetti."
+I progetti sono stati conservati in Documenti › Trascrivi Audio › Progetti.$resta"
   fi
   echo "Disinstallazione completata. Puoi chiudere questa finestra."
   exit 0
@@ -371,11 +408,31 @@ I progetti sono stati conservati in Documenti › Trascrivi Audio › Progetti."
 # Avvio
 # ============================================================================================
 
+un_solo_avvio() {  # due finestre insieme userebbero lo stesso progetto in corso: la seconda si chiude
+  local pid
+  if ! mkdir "$BLOCCO" 2>/dev/null; then
+    pid=$(cat "$BLOCCO/pid" 2>/dev/null)
+    [ -n "$pid" ] || { sleep 1; pid=$(cat "$BLOCCO/pid" 2>/dev/null); }  # l'altra finestra lo sta scrivendo
+    if [ -n "$pid" ] && [ "$pid" != "$$" ] && ps -p "$pid" -o command= 2>/dev/null | grep -q 'Trascrivi-Audio.command'; then
+      avviso "Trascrivi Audio è già aperto in un'altra finestra del Terminale: continua da quella.
+
+Se non la vedi, fai clic sull'icona del Terminale nel Dock." caution
+      echo "Trascrivi Audio è già aperto in un'altra finestra: puoi chiudere questa."
+      exit 0
+    fi
+  fi
+  echo "$$" > "$BLOCCO/pid"  # il blocco rimasto da una finestra chiusa all'improvviso si riprende
+}
+
 echo "Trascrivi Audio $(cat "$QUI/../versione.txt" 2>/dev/null)"
 echo "Questa finestra mostra l'avanzamento: lasciala aperta mentre usi il programma."
-trap 'progetto chiudi >/dev/null 2>&1' EXIT   # il file del progetto in corso è temporaneo
 mkdir -p "$SUPPORTO" || errore "Non riesco a creare la cartella dei dati del programma."
+un_solo_avvio
+trap 'progetto chiudi >/dev/null 2>&1; rm -rf "$BLOCCO"' EXIT   # il file del progetto in corso è temporaneo
 [ -d "$VENV" ] || [ -f "$MARCATORE" ] || echo "installazione" > "$MARCATORE"   # app copiata a mano
+case "$(readlink "$COLLEGAMENTO" 2>/dev/null)" in  # icona di una versione vecchia (app copiata a mano)
+  */Trascrivi-Audio.command) [ -f "$MARCATORE" ] || echo "aggiornamento" > "$MARCATORE" ;;
+esac
 prepara
 completa_installazione
 

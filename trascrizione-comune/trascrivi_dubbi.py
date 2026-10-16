@@ -1,8 +1,8 @@
-"""Trascrizione con parole dubbie segnate (usato da Trascrivi-Audio.command).
+"""Trascrizione con parole dubbie segnate (usato dal programma su Mac e su Windows).
 
 uso: trascrivi_dubbi.py AUDIO TRASCRIZIONE CONTROLLO DATI CARTELLA_CLIP
 Impostazioni dalle variabili d'ambiente MODELLO_A, MODELLO_B, MODELLO_C, SOGLIA, LINGUA,
-RIASCOLTO, CARTELLA_MODELLI e DIZIONARIO (vedi Trascrivi-Audio.command).
+RIASCOLTO, CARTELLA_MODELLI e DIZIONARIO (vedi Trascrivi-Audio.command e TrascriviAudio.ps1).
 """
 import difflib
 import json
@@ -15,6 +15,10 @@ import wave
 from faster_whisper import WhisperModel
 from faster_whisper.audio import decode_audio
 
+import applica_correzioni
+from applica_correzioni import leggi_dizionario, norm, nucleo
+from modelli import tieni_sveglio
+
 audio, file_trascrizione, file_controllo, file_dati, cartella_clip = sys.argv[1:6]
 MODELLO_A = os.environ.get("MODELLO_A", "large-v3")
 MODELLO_B = os.environ.get("MODELLO_B", "medium")
@@ -23,7 +27,6 @@ SOGLIA = float(os.environ.get("SOGLIA", "0.6"))
 LINGUA = os.environ.get("LINGUA", "it") or None
 RIASCOLTO = os.environ.get("RIASCOLTO", "1") != "0"
 CARTELLA_MODELLI = os.environ.get("CARTELLA_MODELLI")
-DIZIONARIO = os.environ.get("DIZIONARIO", "")
 FREQ = 16000        # campioni al secondo dell'audio decodificato
 MARGINE = 0.5       # secondi aggiunti prima e dopo ogni frase riascoltata
 MARGINE_CLIP = 3.0  # secondi aggiunti prima e dopo ogni parola nei ritagli per l'ascolto manuale
@@ -35,20 +38,45 @@ def tempo(secondi):
     return f"{s // 3600:02d}:{s % 3600 // 60:02d}:{s % 60:02d}"
 
 
-norm = lambda t: re.sub(r"[^\w']", "", t.lower())  # toglie spazi, maiuscole e punteggiatura
+# Parole brevi (e/è, a/ha, o/ho, ce/c'è...): se sono giuste dipende dalla frase, quindi una
+# correzione fatta una volta non viene applicata da sola alle trascrizioni successive
+PAROLA_BREVE = 3
 
-# Dizionario personale, creato da Applica-Correzioni: righe «sbagliata → giusta»
-correzioni_note = {}
-if DIZIONARIO and os.path.exists(DIZIONARIO):
-    for riga in open(DIZIONARIO, encoding="utf-8"):
-        if "→" in riga and not riga.lstrip().startswith("#"):
-            sbagliata, giusta = (x.strip() for x in riga.split("→", 1))
-            if norm(sbagliata) and giusta:
-                correzioni_note[norm(sbagliata)] = giusta
-# Parole già verificate da te (confermate o forma giusta di una correzione): non vanno più segnate
-verificate = {norm(g) for g in correzioni_note.values()}
-# Le parole giuste vengono suggerite a Whisper (le più recenti per ultime, ne teniamo un numero limitato)
-suggerimenti = " ".join(list(dict.fromkeys(correzioni_note.values()))[-40:]) or None
+
+def dipende_dalla_frase(sbagliata, giusta):
+    """Correzioni giuste solo in certe frasi, che non si applicano da sole: parole brevi
+    e coppie che differiscono solo per l'acca iniziale (anno/hanno)."""
+    s, g = norm(sbagliata), norm(giusta)
+    return len(s) <= PAROLA_BREVE or s == "h" + g or g == "h" + s
+
+
+def con_punteggiatura(originale, giusta):
+    """La parola giusta con la punteggiatura (e la maiuscola iniziale) della parola originale:
+    «racu.» con la correzione «raku» diventa «raku.», non «raku,» come la volta in cui è stata corretta."""
+    prima, centro, dopo = re.match(r"^([^\w']*)(.*?)([^\w']*)$", originale).groups()
+    nuova = nucleo(giusta) or giusta
+    if centro[:1].isupper() and nuova[:1].islower():
+        nuova = nuova[0].upper() + nuova[1:]
+    return prima + nuova + dopo
+
+
+# Dizionario personale, aggiornato dalla schermata di controllo: righe «sbagliata → giusta»
+correzioni_note = leggi_dizionario()
+# Parole già verificate da te (confermate, o forma giusta di una correzione che non dipende dalla
+# frase): non vanno più segnate
+verificate = {norm(g) for s, g in correzioni_note.items() if norm(g) == s or not dipende_dalla_frase(s, g)}
+
+
+def da_suggerire(parole):
+    """Parole senza punteggiatura (una virgola finale farebbe iniziare la trascrizione in minuscolo),
+    senza doppioni e senza parole brevi (spingerebbero Whisper a scriverle dove non servono)."""
+    return list(dict.fromkeys(nucleo(g) for g in parole if len(norm(g)) > PAROLA_BREVE))
+
+
+# Parole suggerite a Whisper (al massimo 40, le più recenti): prima le tue correzioni, poi le conferme
+corrette = da_suggerire(g for s, g in correzioni_note.items() if norm(g) != s and not dipende_dalla_frase(s, g))[-40:]
+confermate = [g for g in da_suggerire(g for s, g in correzioni_note.items() if norm(g) == s) if g not in corrette]
+suggerimenti = " ".join((confermate[-(40 - len(corrette)):] if len(corrette) < 40 else []) + corrette) or None
 
 
 class Parola:
@@ -63,7 +91,8 @@ class Parola:
         self.note = []
 
     def sostituisci(self, nuovo):
-        self.testo, self.raw = nuovo, " " + nuovo
+        spazio = self.raw[:len(self.raw) - len(self.raw.lstrip())]  # parola attaccata alla precedente: resta così
+        self.testo, self.raw = nuovo, spazio + nuovo
 
 
 def carica(nome_modello, fase):
@@ -90,13 +119,10 @@ def trascrivi(modello, nome_modello, fase):
 
 def nello_stesso_punto(parole, p):
     """Testo delle parole (start, end, testo) che cadono nello stesso punto dell'audio della parola p:
-    quelle che stanno per più di metà dentro p; se nessuna, quella che si sovrappone di più."""
-    sovrapp = [(min(e, p.end) - max(s, p.start), s, e, t) for s, e, t in parole]
-    dentro = [t for o, s, e, t in sovrapp if o > 0 and o >= 0.5 * max(e - s, 0.01)]
-    if dentro:
-        return " ".join(dentro)
-    migliore = max(sovrapp, default=None)
-    return migliore[3] if migliore and migliore[0] > 0 else ""
+    quelle che stanno per più di metà dentro p. Così ogni parola appartiene a una sola parola di p:
+    se il confronto è incerto (es. «ne anche» contro «neanche») la parola resta da verificare,
+    invece di essere sostituita due volte («neanche neanche»)."""
+    return " ".join(t for s, e, t in parole if min(e, p.end) - max(s, p.start) > 0.5 * max(e - s, 0.01))
 
 
 def dubbia(p):
@@ -122,8 +148,10 @@ def riascolta(modello, nome_modello, fase, campioni, frasi_da_rifare, contesto):
     return risultato
 
 
-def applica(p, sentito, come):
-    if norm(sentito) != norm(p.testo):
+def applica(p, sentito, come, esatto=False):
+    """Risolve il dubbio sulla parola p con quanto «sentito»: la parola cambia se è diversa
+    (con esatto=True conta anche una differenza di maiuscole, es. milano → Milano)."""
+    if (sentito != p.testo) if esatto else (norm(sentito) != norm(p.testo)):
         p.note.append(f"corretta: «{p.testo}» → «{sentito}» ({come})")
         p.sostituisci(sentito)
     else:
@@ -132,6 +160,7 @@ def applica(p, sentito, come):
 
 
 # --- 1° e 2° ascolto: due modelli diversi sull'intero audio
+tieni_sveglio()  # una trascrizione può durare ore: il computer non deve andare in stop
 modello_a = carica(MODELLO_A, 1)
 a, frasi = trascrivi(modello_a, MODELLO_A, 1)
 modello_b = carica(MODELLO_B, 2)
@@ -147,12 +176,16 @@ parole_b = [(p.start, p.end, p.testo) for p in b]
 for p in a:
     p.medio = nello_stesso_punto(parole_b, p)
 
-# Dizionario personale: errori già corretti a mano e parole già verificate
+# Dizionario personale, solo per le parole dubbie (quelle sicure e uguali per i due modelli non si
+# toccano): errori già corretti a mano (non quelli che dipendono dalla frase) e parole già verificate
 for p in a:
+    if p.prob >= SOGLIA and p.alternativa is None:
+        continue
     giusta = correzioni_note.get(norm(p.testo))
-    if giusta and norm(giusta) != norm(p.testo):
-        applica(p, giusta, "dal tuo dizionario")
-    elif norm(p.testo) in verificate and (p.prob < SOGLIA or p.alternativa is not None):
+    if giusta and nucleo(giusta) != nucleo(p.testo):  # correzione, anche solo di maiuscole
+        if not dipende_dalla_frase(p.testo, giusta):
+            applica(p, con_punteggiatura(p.testo, giusta), "dal tuo dizionario", esatto=True)
+    elif norm(p.testo) in verificate:
         applica(p, p.testo, "già verificata da te")
 
 dubbie_iniziali = sum(dubbia(p) for p in a)
@@ -250,12 +283,11 @@ with open(file_controllo, "w", encoding="utf-8") as f:
     f.write(f"Modello principale: {MODELLO_A} – confronto: {MODELLO_B} – terzo ascolto: {MODELLO_C} – "
             f"soglia di sicurezza: {SOGLIA}\n\n")
     f.write("COME CORREGGERE\n")
-    f.write(f"  1. Apri la cartella «{os.path.basename(cartella_clip)}»: ogni ritaglio ha lo stesso numero\n")
-    f.write("     della voce qui sotto (nel Finder selezionalo e premi la barra spaziatrice).\n")
-    f.write("  2. Nella riga «PAROLA» scrivi la parola giusta SENZA asterischi.\n")
-    f.write("     Era già giusta? Togli solo gli asterischi. Va cancellata? Lascia vuoto dopo i due punti.\n")
-    f.write("     Non sei sicuro? Lascia gli asterischi.\n")
-    f.write("  3. Salva (Cmd+S) e fai doppio clic su «Applica-Correzioni.command».\n\n")
+    f.write("  Apri Trascrivi Audio, scegli «Apri un progetto», questo progetto e «Analisi delle parole»:\n")
+    f.write("  nella schermata di controllo ascolti il ritaglio di ogni parola, la correggi, spunti\n")
+    f.write("  «Confermata» e premi «Salva». Le correzioni vengono scritte qui, nelle righe «PAROLA».\n")
+    f.write(f"  (I ritagli audio sono nella cartella «{os.path.basename(cartella_clip)}», con lo stesso numero\n")
+    f.write("  della voce qui sotto.)\n\n")
     f.write("LEGENDA\n")
     f.write("  *parola*    da controllare: sicurezza bassa OPPURE i modelli non concordano\n")
     f.write("  **parola**  da controllare per prima: sicurezza bassa E i modelli non concordano\n\n")
@@ -270,8 +302,9 @@ with open(file_controllo, "w", encoding="utf-8") as f:
         prima = " ".join(x.testo for x in a[max(0, i - 6):i])
         dopo = " ".join(x.testo for x in a[i + 1:i + 7])
         dettagli = f"sicurezza {p.prob:.2f}"
-        if p.alternativa is not None:
-            dettagli += f" – {MODELLO_B} ha sentito: «{p.alternativa}»"
+        if p.alternativa is not None:  # (accorciato: con un audio disturbato può essere lunghissimo)
+            alt = p.alternativa if len(p.alternativa) <= 80 else p.alternativa[:79] + "…"
+            dettagli += f" – {MODELLO_B} ha sentito: «{alt}»"
         dettagli += "".join(f" – {x}" for x in p.note)
         f.write(f"\n[{numero}]  {tempo(p.start)}   ritaglio: {v['clip']}\n")
         f.write(f"       contesto: …{prima} [{p.testo}] {dopo}…\n")
@@ -282,5 +315,11 @@ with open(file_controllo, "w", encoding="utf-8") as f:
     f.write("\n" + "=" * 70 + "\nRISOLTE AUTOMATICAMENTE (per controllo)\n" + "=" * 70 + "\n")
     f.write("\n".join(risolte) if risolte else "Nessuna.")
     f.write("\n")
+
+# Trascrizione corretta subito disponibile (uguale alla trascrizione, con le parole dubbie segnate)
+try:
+    applica_correzioni.applica(file_controllo)
+except Exception as e:  # noqa: BLE001 — si potrà creare dalla schermata di controllo
+    print(f"Attenzione: trascrizione corretta non creata ({e})", flush=True)
 
 print(f"\nParole da riverificare: {len(dubbie)} su {len(a)} (prima del riascolto: {dubbie_iniziali})")

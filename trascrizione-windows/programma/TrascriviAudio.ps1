@@ -30,6 +30,15 @@ param(
 )
 
 $ErrorActionPreference = 'Continue'
+if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
+    # Criteri di sicurezza di Windows (es. «Controllo intelligente delle app») o regole aziendali
+    # permettono a PowerShell solo comandi limitati: il programma non può funzionare
+    Write-Host 'Trascrivi Audio non può funzionare su questo PC: i criteri di sicurezza di Windows'
+    Write-Host '(per esempio «Controllo intelligente delle app» o le regole di un PC aziendale)'
+    Write-Host 'permettono a PowerShell solo comandi limitati. Vedi la guida, «Problemi frequenti».'
+    [void](Read-Host 'Premi Invio per chiudere')
+    exit 2   # 2 = errore già spiegato (il file .cmd non aspetta un altro tasto)
+}
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 try { $Host.UI.RawUI.WindowTitle = 'Trascrivi Audio' } catch { }
 $env:PYTHONUTF8 = '1'                          # Python legge e scrive in UTF-8
@@ -37,6 +46,8 @@ $env:PYTHONIOENCODING = 'utf-8'
 $env:PYTHONDONTWRITEBYTECODE = '1'             # niente file di cache nella cartella del programma
 $env:HF_HUB_DISABLE_TELEMETRY = '1'            # nessuna statistica inviata durante i download
 $env:HF_HUB_DISABLE_SYMLINKS_WARNING = '1'
+$env:PYTHONNOUSERSITE = '1'                    # niente pacchetti di altri Python dell'utente
+Remove-Item Env:\PYTHONHOME, Env:\PYTHONPATH -ErrorAction SilentlyContinue   # impostati da altri programmi
 
 $SuWindows = ($PSVersionTable.PSEdition -eq 'Desktop') -or ($IsWindows -eq $true)
 $FINTO = -not [string]::IsNullOrEmpty($env:TRASCRIVI_FINTO)
@@ -56,6 +67,9 @@ $MARCATORE = Join-Path $SUPPORTO 'installazione-da-completare'
 $FILE_CARTELLA = Join-Path $SUPPORTO 'cartella-progetti.txt'
 $CHIAVE_DISINSTALLA = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\TrascriviAudio'
 $env:CARTELLA_MODELLI = Join-Path $SUPPORTO 'modelli'
+# File temporanei dei download nella cartella dei dati: la disinstallazione toglie tutto
+if (-not $env:PIP_CACHE_DIR) { $env:PIP_CACHE_DIR = Join-Path $SUPPORTO 'cache-pip' }
+if (-not $env:HF_HOME) { $env:HF_HOME = Join-Path $SUPPORTO 'huggingface' }
 $env:DIZIONARIO = Join-Path $SUPPORTO 'dizionario.txt'
 $env:ESEMPI = Join-Path $SUPPORTO 'esempi'
 
@@ -108,6 +122,7 @@ function Prepara-Finestre {
     [Finestre]::Titolo = $TITOLO
     [Finestre]::Icona = Join-Path $QUI 'TrascriviAudio.ico'
     [Finestre]::Prepara()
+    [Finestre]::BloccaSelezioneConsole()   # un clic nella finestra di PowerShell non mette in pausa il programma
 }
 
 function Avviso([string]$testo, [switch]$ComeErrore) {
@@ -115,9 +130,11 @@ function Avviso([string]$testo, [switch]$ComeErrore) {
     [void][Finestre]::Mostra($testo, $null, $false, [string[]]@('OK'), $null, [bool]$ComeErrore)
 }
 
-function Domanda([string]$testo, [string]$si) {
-    # Pulsanti «Annulla» e $si: $true se si conferma
+function Domanda([string]$testo, [string]$si, [switch]$PredefinitoAnnulla) {
+    # Pulsanti «Annulla» e $si: $true se si conferma. Con -PredefinitoAnnulla il tasto Invio vale
+    # «Annulla» (per le conferme che cancellano qualcosa)
     if ($FINTO) { return ($null -ne (Prossima-Risposta "finestra: $testo | Annulla | $si")) }
+    if ($PredefinitoAnnulla) { [Finestre]::Predefinito = 'Annulla' }
     $esito = [Finestre]::Mostra($testo, $null, $false, [string[]]@('Annulla', $si), 'Annulla', $false)
     return ($esito.Pulsante -eq $si)
 }
@@ -155,7 +172,7 @@ function Errore([string]$testo) {
     Write-Host ''
     Write-Host "ERRORE: $testo" -ForegroundColor Red
     if (-not $FINTO) { [void](Read-Host 'Premi Invio per chiudere') }
-    exit 1
+    exit 2   # 2 = errore già spiegato (il file .cmd non aspetta un altro tasto)
 }
 
 function Apri-ConProgrammaPredefinito([string]$file) {
@@ -197,6 +214,65 @@ function Trova-CartellaDocumenti {
     return Join-Path $documenti 'Trascrivi Audio'
 }
 
+function Documenti-Attuale {
+    if ($env:TRASCRIVI_DOCUMENTI) { return $env:TRASCRIVI_DOCUMENTI }   # solo per le prove
+    return [Environment]::GetFolderPath('MyDocuments')
+}
+
+function In-OneDrive([string]$cartella) {
+    foreach ($onedrive in @($env:OneDrive, $env:OneDriveConsumer, $env:OneDriveCommercial)) {
+        if ($onedrive -and $cartella.StartsWith($onedrive, [StringComparison]::OrdinalIgnoreCase)) { return $true }
+    }
+    return $false
+}
+
+function Imposta-CartellaDocumenti([string]$cartella) {
+    $script:CARTELLA_DOCUMENTI = $cartella
+    $env:CARTELLA_DOCUMENTI = $cartella
+    $env:CARTELLA_PROGETTI = Join-Path $cartella 'Progetti'
+}
+
+function Ritrova-Progetti {
+    # Se i progetti non sono più dove li avevamo lasciati ma si trovano nella cartella Documenti
+    # attuale, Windows ha spostato Documenti insieme a loro (succede attivando il backup di OneDrive)
+    if (-not (Test-Path -LiteralPath $PY) -or $CARTELLA_SCELTA) { return }   # (cartella scelta a mano: non si tocca)
+    if (Test-Path -LiteralPath (Join-Path $env:CARTELLA_PROGETTI 'elenco-progetti.json')) { return }
+    $documenti = Documenti-Attuale
+    $trovata = Join-Path $documenti 'Trascrivi Audio'
+    if ($trovata -eq $CARTELLA_DOCUMENTI) { return }
+    if (-not (Test-Path -LiteralPath (Join-Path $trovata 'Progetti\elenco-progetti.json'))) { return }
+    if (-not (In-OneDrive $documenti)) {
+        Imposta-CartellaDocumenti $trovata
+        Set-Content -LiteralPath $FILE_CARTELLA -Value $trovata -Encoding UTF8
+        Avviso "La cartella Documenti è stata spostata: i tuoi progetti sono ora in:`n$($env:CARTELLA_PROGETTI)"
+        return
+    }
+    # Finiti in OneDrive: si riportano in una cartella che OneDrive non sincronizza
+    $vecchiaProgetti = Join-Path $trovata 'Progetti'
+    $locale = Join-Path $env:USERPROFILE 'Trascrivi Audio'
+    Imposta-CartellaDocumenti $locale
+    New-Item -ItemType Directory -Force -Path $env:CARTELLA_PROGETTI | Out-Null
+    Write-Host 'Riporto i progetti fuori da OneDrive...'
+    $messaggio = Progetto migra $vecchiaProgetti
+    if ($script:EsitoProgetto -ne 0) {
+        Imposta-CartellaDocumenti $trovata   # si continua a usarli dove sono
+        Set-Content -LiteralPath $FILE_CARTELLA -Value $trovata -Encoding UTF8
+        Avviso ("Windows ha spostato la cartella Documenti in OneDrive, insieme ai tuoi progetti, e non sono riuscito a riportarli fuori:`n$messaggio`n`n" +
+            "I progetti restano in $($env:CARTELLA_PROGETTI), sincronizzata con OneDrive.") -ComeErrore
+        return
+    }
+    Set-Content -LiteralPath $FILE_CARTELLA -Value $locale -Encoding UTF8
+    $guida = Join-Path $trovata 'Guida rapida.pdf'
+    if (Test-Path -LiteralPath $guida) { Move-Item -LiteralPath $guida -Destination $locale -Force -ErrorAction SilentlyContinue }
+    if (-not (Get-ChildItem -LiteralPath $trovata -Force -ErrorAction SilentlyContinue)) {
+        Remove-Item -LiteralPath $trovata -Force -ErrorAction SilentlyContinue
+    }
+    Avviso ("Windows ha spostato la cartella Documenti in OneDrive, insieme ai tuoi progetti.`n`n" +
+        "Per non tenere l'audio online li ho riportati in una cartella che OneDrive non sincronizza:`n$($env:CARTELLA_PROGETTI)`n`n" +
+        "Nel frattempo OneDrive potrebbe averli già caricati: sul sito di OneDrive restano nel Cestino per qualche settimana, se vuoi puoi svuotarlo.")
+}
+
+$CARTELLA_SCELTA = -not [string]::IsNullOrEmpty($env:CARTELLA_DOCUMENTI)   # impostata a mano (variabile d'ambiente)
 $CARTELLA_DOCUMENTI = Trova-CartellaDocumenti
 $env:CARTELLA_DOCUMENTI = $CARTELLA_DOCUMENTI
 $env:CARTELLA_PROGETTI = Join-Path $CARTELLA_DOCUMENTI 'Progetti'
@@ -218,7 +294,7 @@ function Installa-DaPacchetto {
             Get-ChildItem -LiteralPath $DEST -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
         }
         New-Item -ItemType Directory -Force -Path $DEST | Out-Null
-        Copy-Item -Path (Join-Path $QUI '*') -Destination $DEST -Recurse -Force
+        Get-ChildItem -LiteralPath $QUI -Force | Copy-Item -Destination $DEST -Recurse -Force
         $guida = Join-Path (Split-Path -Parent $QUI) 'Guida rapida.pdf'
         if (Test-Path -LiteralPath $guida) { Copy-Item -LiteralPath $guida -Destination $DEST -Force }
         if (-not (Test-Path -LiteralPath (Join-Path $DEST 'TrascriviAudio.ps1'))) {
@@ -248,7 +324,9 @@ function Installa-PythonPortatile {
     New-Item -ItemType Directory -Force -Path $temporanea | Out-Null
     $archivio = Join-Path $temporanea 'python.tar.gz'
     Write-Host "Scarico Python $PYTHON_VERSIONE portatile (circa 44 MB)..."
-    & $CURL -fL --progress-bar -o $archivio $url
+    $opzioni = @('-fL', '--progress-bar')
+    if ($SuWindows) { $opzioni += '--ssl-no-revoke' }   # alcuni antivirus e proxy bloccano il controllo di revoca
+    & $CURL @opzioni -o $archivio $url
     if ($LASTEXITCODE -ne 0) {
         Errore 'Download di Python non riuscito. Controlla la connessione a internet e riapri Trascrivi Audio.'
     }
@@ -263,7 +341,9 @@ function Installa-PythonPortatile {
     if ($LASTEXITCODE -ne 0) { Errore 'Estrazione di Python non riuscita.' }
     Remove-Item -LiteralPath $temporanea -Recurse -Force -ErrorAction SilentlyContinue
     & $PY -c 'import ssl, venv'
-    if ($LASTEXITCODE -ne 0) { Errore 'Python portatile installato ma non si avvia.' }
+    if ($LASTEXITCODE -ne 0) {
+        Errore 'Python portatile installato ma non si avvia. Forse un antivirus o il «Controllo intelligente delle app» di Windows lo blocca: vedi la guida, «Problemi frequenti».'
+    }
     Write-Host 'Python portatile installato.' -ForegroundColor Green
 }
 
@@ -276,14 +356,16 @@ function Prepara {
         & $PY -m pip --version *> $null
         if ($LASTEXITCODE -ne 0) { & $PY -m ensurepip --upgrade }
         & $PY -m pip install --upgrade pip
-        if ($LASTEXITCODE -ne 0) { Errore 'Installazione di Whisper non riuscita (controlla la connessione a internet).' }
-        # av<19: PyAV 19 ha tolto un'opzione usata da faster-whisper 1.2 (errore «metadata_errors»)
-        $pacchetti = @('faster-whisper', 'av<19')
+        if ($LASTEXITCODE -ne 0) { Errore 'Installazione di Whisper non riuscita: controlla la connessione a internet e lo spazio libero sul disco (i dettagli sono nella finestra di PowerShell).' }
+        # Versioni provate: av<19 (PyAV 19 ha tolto un'opzione usata da faster-whisper 1.2, errore
+        # «metadata_errors») e huggingface_hub<3; truststore fa usare i certificati di Windows nei
+        # download (necessario con alcuni antivirus che controllano le connessioni protette)
+        $pacchetti = @('faster-whisper==1.2.1', 'av<19', 'huggingface_hub<3', 'truststore')
         # msvc-runtime: i componenti Microsoft (MSVCP140) che servono a Whisper, dentro il Python
         # del programma: non serve installarli in Windows né confermare come amministratore
         if ($SuWindows) { $pacchetti += 'msvc-runtime' }
         & $PY -m pip install @pacchetti
-        if ($LASTEXITCODE -ne 0) { Errore 'Installazione di Whisper non riuscita (controlla la connessione a internet).' }
+        if ($LASTEXITCODE -ne 0) { Errore 'Installazione di Whisper non riuscita: controlla la connessione a internet e lo spazio libero sul disco (i dettagli sono nella finestra di PowerShell).' }
         if (-not (Whisper-Installato)) { Errore 'Whisper risulta installato ma non si avvia.' }
         Write-Host 'Whisper installato.' -ForegroundColor Green
     }
@@ -293,7 +375,7 @@ function Prepara {
         if (-not $m) { continue }
         Write-Host "Scarico il modello $m (una volta sola, può volerci un po')..."
         & $PY $modelli scarica $m
-        if ($LASTEXITCODE -ne 0) { Errore "Download del modello $m non riuscito (controlla la connessione a internet)." }
+        if ($LASTEXITCODE -ne 0) { Errore "Download del modello $m non riuscito: controlla la connessione a internet e lo spazio libero sul disco (circa 5 GB), poi riapri Trascrivi Audio." }
     }
 }
 
@@ -342,16 +424,25 @@ function Registra-InAppInstallate {
     }
 }
 
+function Crea-Icone {
+    Crea-Collegamento (Join-Path (Cartella-Scrivania) 'Trascrivi Audio.lnk')
+    Crea-Collegamento (Join-Path (Cartella-Start) 'Trascrivi Audio.lnk')
+}
+
 function Completa-Installazione {
     if (-not (Test-Path -LiteralPath $MARCATORE)) { return }
     $tipo = (Get-Content -LiteralPath $MARCATORE -Raw -Encoding UTF8).Trim()
     # La posizione dei progetti resta questa anche se in futuro Documenti cambiasse
     Set-Content -LiteralPath $FILE_CARTELLA -Value $CARTELLA_DOCUMENTI -Encoding UTF8
-    Crea-Collegamento (Join-Path (Cartella-Scrivania) 'Trascrivi Audio.lnk')
-    Crea-Collegamento (Join-Path (Cartella-Start) 'Trascrivi Audio.lnk')
-    Registra-InAppInstallate
-    $guida = Join-Path $QUI 'Guida rapida.pdf'
-    if (Test-Path -LiteralPath $guida) { Copy-Item -LiteralPath $guida -Destination $CARTELLA_DOCUMENTI -Force }
+    $problemi = @()
+    try { Crea-Icone } catch { $problemi += "icone sulla Scrivania e nel menu Start ($($_.Exception.Message))" }
+    try { Registra-InAppInstallate } catch { $problemi += "voce in «App installate» ($($_.Exception.Message))" }
+    try {
+        $guida = Join-Path $QUI 'Guida rapida.pdf'
+        if (Test-Path -LiteralPath $guida) { Copy-Item -LiteralPath $guida -Destination $CARTELLA_DOCUMENTI -Force }
+    }
+    catch { $problemi += "copia della guida ($($_.Exception.Message))" }
+    foreach ($problema in $problemi) { Write-Host "Attenzione: non sono riuscito a creare: $problema" -ForegroundColor Yellow }
     Remove-Item -LiteralPath $MARCATORE -Force
     if ($tipo -eq 'aggiornamento') {
         Avviso "Aggiornamento completato.`n`nI tuoi progetti sono rimasti dove erano:`n$($env:CARTELLA_PROGETTI)"
@@ -373,13 +464,15 @@ function Completa-Installazione {
 # ============================================================================================
 
 function Scegli-Audio {
-    # Chiede l'audio sorgente e lo copia nel progetto in corso; $false se annullato
-    $sorgente = Scegli-FileAudio 'Scegli il file audio (o video) da trascrivere'
-    if (-not $sorgente) { return $false }
-    Write-Host "Copio l'audio nel progetto..."
-    $messaggio = Progetto imposta-audio $sorgente
-    if ($script:EsitoProgetto -ne 0) { Errore $messaggio }
-    return $true
+    # Chiede l'audio sorgente, lo controlla e lo copia nel progetto in corso; $false se annullato
+    while ($true) {
+        $sorgente = Scegli-FileAudio 'Scegli il file audio (o video) da trascrivere'
+        if (-not $sorgente) { return $false }
+        Write-Host "Copio l'audio nel progetto..."
+        $messaggio = Progetto imposta-audio $sorgente
+        if ($script:EsitoProgetto -eq 0) { return $true }
+        Avviso $messaggio   # file rovinato, senza audio...: se ne sceglie un altro
+    }
 }
 
 function Nuovo-Progetto {
@@ -401,7 +494,9 @@ function Nuovo-Progetto {
 }
 
 function Apri-Progetto {
-    $nomi = @((Progetto elenco) -split "`n" | Where-Object { $_ })
+    $elenco = Progetto elenco
+    if ($script:EsitoProgetto -ne 0) { Avviso $elenco; return }
+    $nomi = @($elenco -split "`n" | Where-Object { $_ })
     if ($nomi.Count -eq 0) {
         Avviso 'Non ci sono ancora progetti: ne creiamo uno nuovo.'
         Nuovo-Progetto
@@ -410,19 +505,34 @@ function Apri-Progetto {
     $nome = Scegli-Voce 'Scegli il progetto da aprire:' $nomi
     if (-not $nome) { return }
     $messaggio = Progetto seleziona $nome
-    if ($script:EsitoProgetto -ne 0) { Errore $messaggio }
+    if ($script:EsitoProgetto -eq 3) {
+        # La cartella del progetto è stata cancellata, spostata o rinominata
+        $cosa = Scelta ("$messaggio`n`nSe l'hai spostata o rinominata, rimettila in Trascrivi Audio › Progetti con il nome di prima. " +
+            "Se l'hai cancellata, puoi togliere il progetto dall'elenco.") @('Annulla', "Togli dall'elenco")
+        if (-not $cosa) { return }
+        $messaggio = Progetto togli $nome
+        if ($script:EsitoProgetto -eq 0) { Avviso "Il progetto «$nome» è stato tolto dall'elenco."; return }
+    }
+    if ($script:EsitoProgetto -ne 0) { Avviso $messaggio; return }
     if ((Progetto campo stato) -eq 'trascritto') {
         $cosa = Scelta "Progetto «$nome»: cosa vuoi fare?" @('Annulla', 'Rielabora la trascrizione', 'Analisi delle parole')
         if (-not $cosa) { return }
         if ($cosa -eq 'Analisi delle parole') { Analisi-Parole; return }
         $conferma = Domanda ("Rielaborare la trascrizione del progetto «$nome»?`n`n" +
-            'La trascrizione e le parole da controllare verranno rifatte da capo: le correzioni fatte in questo progetto andranno perse (il tuo dizionario personale resta e verrà usato).') 'Rielabora'
+            'La trascrizione e le parole da controllare verranno rifatte da capo: le correzioni fatte in questo progetto andranno perse (il tuo dizionario personale resta e verrà usato).') 'Rielabora' -PredefinitoAnnulla
         if (-not $conferma) { return }
     }
     else {
         Avviso "Il progetto «$nome» non ha ancora una trascrizione completa: la avvio ora."
     }
     $audio = Progetto campo audio
+    if ($audio -and (Test-Path -LiteralPath $audio)) {
+        $messaggio = Progetto controlla-audio $audio
+        if ($script:EsitoProgetto -ne 0) {
+            Avviso $messaggio   # es. un audio rovinato, scelto con una versione precedente del programma
+            $audio = ''
+        }
+    }
     if (-not $audio -or -not (Test-Path -LiteralPath $audio)) {
         if (-not (Scegli-Audio)) { return }
     }
@@ -460,11 +570,19 @@ function Trascrivi-Progetto {
     & $PY (Join-Path $QUI 'trascrivi_dubbi.py') $audio $trascrizione $controllo $dati $clip
     $esito = $LASTEXITCODE
     Remove-Item Env:\HF_HUB_OFFLINE -ErrorAction SilentlyContinue
-    if ($esito -ne 0) { Errore 'La trascrizione non è riuscita.' }
+    if ($esito -ne 0) {
+        Write-Host 'ERRORE: la trascrizione non è riuscita.' -ForegroundColor Red
+        Avviso "La trascrizione del progetto «$nome» non è riuscita.`n`nDettagli nella finestra di PowerShell. Puoi riprovare da «Apri un progetto»." -ComeErrore
+        return
+    }
     Progetto stato trascritto | Out-Null
 
     $quante = (Leggi-Riga $controllo '^Parole da riverificare:') -replace '^Parole da riverificare:\s*', ''
     $prima = Leggi-Riga $controllo '^\(prima del riascolto'
+    if ($quante -match ' su 0$') {   # nessuna parola riconosciuta
+        Avviso "Trascrizione del progetto «$nome» completata, ma nell'audio non è stato riconosciuto nessun parlato.`n`nControlla di aver scelto il file giusto e che l'audio non sia muto."
+        return
+    }
     if ($quante -match '^0 ') {
         Avviso "Trascrizione del progetto «$nome» completata.`n`nNon ci sono parole da riverificare: ora si apre la trascrizione."
         Apri-ConProgrammaPredefinito $trascrizione
@@ -478,7 +596,8 @@ function Trascrivi-Progetto {
 function Analisi-Parole {
     $controllo = Progetto campo controllo
     if (-not $controllo -or -not (Test-Path -LiteralPath $controllo)) {
-        Errore "Il progetto «$(Progetto campo nome)» non ha ancora parole da controllare: rielabora prima la trascrizione."
+        Avviso "Il progetto «$(Progetto campo nome)» non ha ancora parole da controllare: rielabora prima la trascrizione."
+        return
     }
     Write-Host ''
     Write-Host "Progetto: $(Progetto campo numero) – $(Progetto campo nome)"
@@ -486,7 +605,7 @@ function Analisi-Parole {
     Write-Host 'Apro la schermata di controllo nel browser.'
     Write-Host 'Quando hai finito premi «Chiudi» nella pagina: tornerai al menu principale.'
     & $PY (Join-Path $QUI 'schermata_controllo.py') $controllo
-    if ($LASTEXITCODE -ne 0) { Errore 'La schermata di controllo si è chiusa con un errore.' }
+    if ($LASTEXITCODE -ne 0) { Avviso "La schermata di controllo si è chiusa con un errore.`n`nDettagli nella finestra di PowerShell." -ComeErrore }
 }
 
 # ============================================================================================
@@ -507,7 +626,7 @@ function Disinstalla-Programma {
     if (-not $risposta) { return }
     $tutto = ($risposta -eq 'Cancella anche i progetti')
     if ($tutto) {
-        if (-not (Domanda 'Sei sicuro? Tutti i progetti, con audio e trascrizioni, verranno cancellati definitivamente.' 'Cancella tutto')) { return }
+        if (-not (Domanda 'Sei sicuro? Tutti i progetti, con audio e trascrizioni, verranno cancellati definitivamente.' 'Cancella tutto' -PredefinitoAnnulla)) { return }
     }
     Write-Host 'Disinstallo Trascrivi Audio...'
     Progetto chiudi | Out-Null
@@ -544,6 +663,23 @@ function Disinstalla-Programma {
 # ============================================================================================
 
 Prepara-Finestre
+
+# Un solo Trascrivi Audio alla volta: due finestre userebbero lo stesso progetto in corso, e
+# un aggiornamento o una disinstallazione toglierebbero i file a quella già aperta
+$script:UnSoloAvvio = New-Object System.Threading.Mutex($false, 'Local\TrascriviAudio')
+$libero = $false
+try { $libero = $script:UnSoloAvvio.WaitOne(0) }
+catch [System.Threading.AbandonedMutexException] { $libero = $true }   # l'altra finestra è stata chiusa di colpo
+if (-not $libero) {
+    if ($Installa -or $Disinstalla) {
+        Avviso "Trascrivi Audio è aperto in un'altra finestra: chiudilo (scegli «Esci» nel menu) e poi riprova."
+    }
+    else {
+        Avviso "Trascrivi Audio è già aperto in un'altra finestra di PowerShell: continua da quella (la trovi sulla barra delle applicazioni)."
+    }
+    exit 0
+}
+
 if ($Installa) { Installa-DaPacchetto }
 if ($Disinstalla) { Disinstalla-Programma; exit 0 }
 
@@ -554,6 +690,8 @@ if (-not (Test-Path -LiteralPath $PY) -and -not (Test-Path -LiteralPath $MARCATO
     Set-Content -LiteralPath $MARCATORE -Value 'installazione' -Encoding UTF8   # programma copiato a mano
 }
 try {
+    if (Test-Path -LiteralPath $MARCATORE) { try { Crea-Icone } catch { } }
+    Ritrova-Progetti
     Prepara
     Completa-Installazione
     while ($true) {

@@ -256,7 +256,9 @@ Nella cartella **Progetti** ci sono anche due file gestiti dal programma:
 **Dove sta la cartella dei progetti:** in **Documenti › Trascrivi Audio**. Se però Documenti è
 sincronizzata con **OneDrive** (succede spesso su Windows 11), il programma usa
 **C:\\Utenti\\*tuo nome*\\Trascrivi Audio**, che OneDrive non sincronizza, perché l'audio non deve
-finire online. La scelta si fa alla prima installazione e poi resta sempre la stessa.
+finire online. La scelta si fa alla prima installazione e poi resta sempre la stessa. Se attivi
+il backup di OneDrive più tardi, Windows sposta in OneDrive anche i progetti: alla prima apertura
+successiva il programma li riporta in **C:\\Utenti\\*tuo nome*\\Trascrivi Audio** e te lo dice.
 
 ### 5.3 Come funziona la trascrizione
 
@@ -271,7 +273,7 @@ potrebbe essere sbagliata.
 | Confronto | una parola è **dubbia** se large-v3 non ne è sicuro **oppure** se i due modelli hanno sentito cose diverse |
 | 3° – riascolto con large-v3 | ritaglia solo le frasi con parole dubbie e le fa riascoltare. Se ora sente la stessa cosa di medium, il dubbio è risolto |
 | 4° – riascolto con medium | dove ancora non coincidono, medium riascolta. Se coincide con il riascolto di large-v3, il dubbio è risolto; altrimenti la parola **resta da verificare** |
-| Il tuo dizionario | le parole che hai già corretto vengono sistemate da sole; quelle che hai confermato non vengono più segnate |
+| Il tuo dizionario | quando una parola è di nuovo dubbia: se l'avevi corretta viene sistemata da sola, se l'avevi confermata non viene più segnata. Le parole brevi come e/è, a/ha, o/ho e le coppie come anno/hanno restano invece da controllare, perché dipendono dalla frase. Le parole di cui Whisper è sicuro non vengono mai cambiate |
 
 Per ogni parola che resta dubbia, il programma salva un **ritaglio audio** con 3 secondi prima e
 3 dopo. Nei file di testo le parole dubbie sono segnate così:
@@ -280,7 +282,8 @@ Per ogni parola che resta dubbia, il programma salva un **ritaglio audio** con 3
 - `**parola**`: da controllare per prima, perché i dubbi sono due (sicurezza bassa e modelli in disaccordo).
 
 **Tempi:** da 1 a 3 volte la durata dell'audio su un computer recente; di più sui computer meno
-potenti, perché Whisper usa il processore.
+potenti, perché Whisper usa il processore. Mentre il programma lavora il PC non va in stop da solo;
+se chiudi il coperchio del portatile, però, si ferma anche la trascrizione.
 
 ### 5.4 La schermata di controllo
 
@@ -299,13 +302,14 @@ tuo computer**: non usa internet e non è raggiungibile da altri computer.
 |---|---|
 | **Salva** | scrive le modifiche nel file delle parole dubbie, aggiorna la **trascrizione corretta**, registra le parole nel tuo **dizionario personale** (correzioni e conferme) e salva gli esempi audio. Poi **ricarica il file**: le parole confermate restano bloccate per sempre |
 | **Annulla** | scarta le modifiche non ancora salvate e mostra di nuovo il contenuto del file |
-| **Chiudi** | chiude la schermata e torna al menu principale. Se ci sono modifiche non salvate, avvisa |
+| **Chiudi** | chiude la schermata e torna al menu principale. Se ci sono modifiche non salvate, avvisa. Se chiudi la scheda del browser senza «Chiudi», dopo pochi secondi si torna comunque al menu |
 
 - Una parola modificata ma **non** confermata viene salvata come bozza: resta tra asterischi e
   potrai confermarla più tardi.
 - **Cosa vuol dire "registrare" una parola:** Whisper non viene riaddestrato, ma il programma
   ricorda le tue scelte nel **dizionario personale**, comune a tutti i progetti. Nelle trascrizioni
-  successive le parole corrette vengono suggerite a Whisper e sistemate da sole, e quelle
+  successive le parole corrette vengono suggerite a Whisper e, dove sono di nuovo dubbie,
+  sistemate da sole (tranne le parole brevi come e/è, che dipendono dalla frase); quelle
   confermate non vengono più segnate.
 
 ### 5.5 Aggiornare il programma
@@ -321,10 +325,15 @@ doppio clic su **Installa Trascrivi Audio**. Il programma viene sostituito e com
 | «Windows ha protetto il PC» | clicca **Ulteriori informazioni** → **Esegui comunque** (Passo 3 dell'installazione) |
 | Il doppio clic su «Installa Trascrivi Audio» dentro lo ZIP non funziona | lo ZIP va prima estratto: tasto destro → **Estrai tutto** (Passo 1) |
 | L'antivirus blocca l'installazione | il programma scarica Python e Whisper da internet: alcuni antivirus lo segnalano per prudenza. Consenti l'esecuzione o chiedi a chi ti assiste |
+| «Trascrivi Audio non può funzionare su questo PC: i criteri di sicurezza…» oppure «Python portatile installato ma non si avvia» | Windows blocca i programmi senza firma digitale: succede con il **Controllo intelligente delle app** (Smart App Control) attivo o sui PC aziendali. Si può disattivare in Sicurezza di Windows › Controllo delle app e del browser › Impostazioni di Controllo intelligente delle app (poi non si riattiva senza reinstallare Windows): se non sei sicuro, chiedi a chi ti assiste |
 | «Download di Python non riuscito» o «non è integro» | controlla la connessione a internet e riapri Trascrivi Audio |
 | Ho chiuso la finestra di PowerShell | il programma si interrompe: riaprilo dall'icona. Se stava trascrivendo, apri il progetto: la trascrizione riparte |
 | Non trovo più l'icona sulla Scrivania | cerca «Trascrivi Audio» nel menu **Start**; per rimettere l'icona, trascinala dal menu Start alla Scrivania |
-| «La cartella del progetto non esiste più» | è stata spostata o rinominata: rimettila in Trascrivi Audio › Progetti con il nome originale |
+| «La cartella del progetto non esiste più» | se l'hai spostata o rinominata, rimettila in Trascrivi Audio › Progetti con il nome originale; se l'hai cancellata, scegli **Togli dall'elenco** |
+| «Trascrivi Audio è già aperto in un'altra finestra» | il programma si può aprire una volta sola: continua dalla finestra di PowerShell già aperta (la trovi sulla barra delle applicazioni). Per aggiornarlo o disinstallarlo, prima chiudilo con **Esci** |
+| «Il file … non è un audio leggibile» o «non contiene audio» | il file è rovinato, non è un audio o è un video senza audio: scegline un altro |
+| «Nell'audio non è stato riconosciuto nessun parlato» | il file è muto o non è quello giusto: crea un nuovo progetto con il file giusto |
+| «La trascrizione non è riuscita» | il programma torna al menu; il motivo è scritto nella finestra di PowerShell. Puoi riprovare da **Apri un progetto** |
 | La schermata di controllo non si apre | nella finestra di PowerShell c'è l'indirizzo da copiare nel browser |
 | L'audio di una riga non parte | usa il link «Apri l'audio» sotto il lettore |
 | Una parola non deve più essere considerata confermata | cancella la sua riga da `dizionario.txt` (vedi 5.7) |
@@ -338,7 +347,8 @@ doppio clic su **Installa Trascrivi Audio**. Il programma viene sostituito e com
 - **Dati del programma:** `%LOCALAPPDATA%\TrascriviAudio` (in Esplora file incolla il percorso
   nella barra dell'indirizzo). Contiene:
   - `python\` e `modelli\`: Python con Whisper e i modelli;
-  - `dizionario.txt`: le tue correzioni e conferme;
+  - `dizionario.txt`: le tue correzioni e conferme, una per riga («sbagliata → giusta»). Puoi
+    modificarlo a mano (al posto di → puoi scrivere ->): le righe che cancelli non ricompaiono;
   - `esempi\`: gli audio corretti, con il testo giusto.
 
 Per disinstallare usa la voce **Disinstalla Trascrivi Audio** del menu, oppure Impostazioni ›

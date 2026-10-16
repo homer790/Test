@@ -27,6 +27,8 @@ internet (`HF_HUB_OFFLINE=1`) e non invia statistiche (`HF_HUB_DISABLE_TELEMETRY
    - toglie il blocco «scaricato da internet» (`Unblock-File`);
    - avvia la copia installata. La finestra di PowerShell mostra l'avanzamento.
 4. **Il programma** (`TrascriviAudio.ps1`, per Windows PowerShell 5.1 incluso in Windows):
+   - si apre **una volta sola** (mutex `Local\TrascriviAudio`): una seconda finestra, un
+     aggiornamento o una disinstallazione con il programma aperto si fermano con una spiegazione;
    - prepara tutto **senza domande**, solo se manca qualcosa:
      - **Python portatile** 3.12.15 (python-build-standalone 20261013, x86_64), privato del
        programma: scaricato con `curl.exe`, verificato con SHA-256 ed estratto con `tar.exe`
@@ -42,8 +44,10 @@ internet (`HF_HUB_OFFLINE=1`) e non invia statistiche (`HF_HUB_DISABLE_TELEMETRY
      - copia la guida in `Documenti\Trascrivi Audio`, accanto alla cartella dei progetti;
    - mostra il **menu principale** (si torna lì dopo ogni operazione):
      - **Nuovo progetto:** nome → `Documenti\Trascrivi Audio\Progetti\NNN_Nome` → audio,
-       copiato nel progetto → trascrizione → schermata di controllo;
-     - **Apri un progetto:** lista → **Analisi delle parole** oppure **Rielabora la trascrizione**;
+       controllato (un file rovinato o senza audio viene rifiutato) e copiato nel progetto →
+       trascrizione → schermata di controllo;
+     - **Apri un progetto:** lista → **Analisi delle parole** oppure **Rielabora la trascrizione**
+       (se la cartella del progetto è stata cancellata si può **togliere dall'elenco**);
      - **Guida rapida**;
      - **Disinstalla Trascrivi Audio:** chiede conferma e se conservare i progetti;
      - **Esci**.
@@ -54,10 +58,16 @@ internet (`HF_HUB_OFFLINE=1`) e non invia statistiche (`HF_HUB_DISABLE_TELEMETRY
    (4 ascolti, ritagli di ±3 s, dizionario personale; schermata nel browser predefinito, servita
    solo su `127.0.0.1` con un token).
 
+**Criteri di sicurezza:** se PowerShell funziona solo in modalità limitata (Controllo intelligente
+delle app di Windows 11, regole aziendali) il programma lo dice subito nella finestra di PowerShell
+invece di fallire più avanti; la guida spiega cosa fare.
+
 **OneDrive:** su Windows 11 la cartella Documenti è spesso sincronizzata con OneDrive. In quel
 caso i progetti vanno in `%USERPROFILE%\Trascrivi Audio`, che OneDrive non sincronizza, così
 l'audio non finisce online. La cartella scelta alla prima installazione viene salvata in
-`cartella-progetti.txt` e resta quella anche negli aggiornamenti.
+`cartella-progetti.txt` e resta quella anche negli aggiornamenti. Se il backup di OneDrive viene
+attivato dopo, Windows sposta Documenti in OneDrive insieme ai progetti: all'avvio il programma li
+ritrova e li riporta in `%USERPROFILE%\Trascrivi Audio` (`progetti.py migra`).
 
 ## Struttura del repository
 
@@ -108,7 +118,7 @@ l'audio non finisce online. La cartella scelta alla prima installazione viene sa
 
 | Prova | Cosa verifica |
 |---|---|
-| `test/prova-windows.sh file_audio` | con PowerShell 7 (`pwsh`) e le finestre simulate (`TRASCRIVI_FINTO=1`): controlli sul pacchetto (CRLF, BOM, ASCII), poi 8 scenari dallo ZIP alla disinstallazione su un «PC» senza Python: installazione senza domande (Python portatile, Whisper, modelli, collegamenti, voce in App installate), nuovo progetto con trascrizione vera, avvio dall'icona, analisi e rielaborazione, guida, nome vuoto o duplicato e Annulla, aggiornamento, disinstallazione dal menu e da App installate conservando o cancellando i progetti, Documenti su OneDrive, Python scaricato corrotto |
+| `test/prova-windows.sh file_audio` | con PowerShell 7 (`pwsh`) e le finestre simulate (`TRASCRIVI_FINTO=1`): controlli sul pacchetto (CRLF, BOM, ASCII), poi 11 scenari dallo ZIP alla disinstallazione su un «PC» senza Python: installazione senza domande (Python portatile, Whisper, modelli, collegamenti, voce in App installate), nuovo progetto con trascrizione vera, avvio dall'icona, analisi e rielaborazione, guida, nome vuoto o duplicato e Annulla, audio rovinato o senza audio, cartella di un progetto cancellata, programma già aperto (seconda finestra e aggiornamento fermati), aggiornamento, disinstallazione dal menu e da App installate conservando o cancellando i progetti, Documenti su OneDrive, Python scaricato corrotto |
 | `test/prova-finestre.sh` | compila `Finestre.cs` come Windows PowerShell 5.1 (C# 5) e prova ogni tipo di finestra con Mono su uno schermo virtuale, simulando i clic |
 | `../trascrizione-mac/test/prova-schermata.js` | la schermata di controllo in un vero browser (è la stessa del Mac) |
 
@@ -120,6 +130,7 @@ Windows PowerShell 5.1.
 Le prove girano su Linux con PowerShell 7 e le finestre simulate. Su Windows 11 vanno verificati:
 
 - gli avvisi di SmartScreen e dell'antivirus;
+- un PC con il Controllo intelligente delle app attivo (installazione pulita di Windows 11);
 - il caricamento delle librerie di msvc-runtime da parte di Whisper;
 - l'aspetto delle finestre con Windows PowerShell 5.1;
 - collegamenti, voce in «App installate» e disinstallazione.

@@ -6,7 +6,7 @@ Avvia un piccolo server solo sul computer (127.0.0.1, non raggiungibile da fuori
 browser. Per ogni parola dubbia: audio del ritaglio, campo modificabile e casella «Confermata».
 «Salva» scrive le righe PAROLA nel file di controllo, applica le correzioni (trascrizione
 corretta, dizionario personale, esempi) e ricarica il file. Il server si chiude con il pulsante
-«Chiudi» o qualche minuto dopo che la pagina è stata chiusa.
+«Chiudi» o pochi secondi dopo che la scheda del browser è stata chiusa.
 """
 import json
 import os
@@ -22,16 +22,22 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from applica_correzioni import RIGA_PAROLA, applica, percorsi  # noqa: E402
+from applica_correzioni import RIGA_PAROLA, applica, leggi_testo, percorsi  # noqa: E402
 
 PER_PAGINA = 10
-ATTESA_CHIUSURA = 180  # secondi senza notizie dalla pagina prima di chiudere il server
+# Il server si chiude quando la pagina avvisa che la scheda è stata chiusa (dopo qualche secondo:
+# se la pagina è stata solo ricaricata si rifà viva subito) oppure, per sicurezza, dopo mezz'ora
+# senza notizie dalla pagina. Il tempo in cui il computer è in stop non conta: al risveglio la
+# pagina deve poter salvare le modifiche fatte prima.
+ATTESA_DOPO_CHIUSURA = 10
+ATTESA_CHIUSURA = int(os.environ.get("ATTESA_CHIUSURA") or 30 * 60)
 
 file_controllo = os.path.abspath(sys.argv[1])
 file_dati, file_corretta = percorsi(file_controllo)
 TOKEN = secrets.token_urlsafe(16)  # solo questa pagina può usare il server
 blocco = threading.Lock()
 ultimo_contatto = [None]
+pagina_chiusa = [None]
 
 
 def apri(percorso_o_url):
@@ -49,8 +55,8 @@ def leggi_voci():
     """Legge il file di controllo (e il file dati per i ritagli) e restituisce le voci da mostrare."""
     with open(file_dati, encoding="utf-8") as f:
         dati = json.load(f)
-    with open(file_controllo, encoding="utf-8") as f:
-        righe = f.read().splitlines()
+    righe = leggi_testo(file_controllo).splitlines()
+    parole = dati.get("parole", [])
     voci, corrente = [], None
     for riga in righe:
         m = re.match(r"^\[(\d+)\]\s+(\S+)", riga)
@@ -67,6 +73,11 @@ def leggi_voci():
             corrente["stile"] = "**" if valore.startswith("**") else "*"
             voce = dati["voci"].get(corrente["numero"])
             corrente["clip"] = voce["clip"] if voce else ""
+            if voce and voce["indice"] < len(parole):
+                i = voce["indice"]
+                corrente["prima"] = " ".join(x["testo"] for x in parole[max(0, i - 6):i])
+                corrente["parola"] = parole[i]["testo"]
+                corrente["dopo"] = " ".join(x["testo"] for x in parole[i + 1:i + 7])
             voci.append(corrente)
             corrente = None
         elif riga.strip().startswith("contesto:"):
@@ -158,6 +169,12 @@ class Gestore(BaseHTTPRequestHandler):
                     fine = min(int(intervallo.group(2)), dimensione - 1)
             elif intervallo.group(2):
                 inizio = max(0, dimensione - int(intervallo.group(2)))
+            if inizio > fine:  # intervallo impossibile
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{dimensione}")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
         with open(percorso, "rb") as f:
             f.seek(inizio)
             corpo = f.read(fine - inizio + 1)
@@ -174,6 +191,9 @@ class Gestore(BaseHTTPRequestHandler):
         percorso = urlparse(self.path).path
         if not self.autorizzato():
             return self.rispondi(403, {"errore": "accesso non autorizzato"})
+        if percorso == "/api/chiusa":  # la scheda è stata chiusa (o ricaricata)
+            pagina_chiusa[0] = time.time()
+            return self.rispondi(200, {"ok": True})
         ultimo_contatto[0] = time.time()
         lunghezza = int(self.headers.get("Content-Length", 0) or 0)
         corpo = json.loads(self.rfile.read(lunghezza) or b"{}")
@@ -203,13 +223,23 @@ class Gestore(BaseHTTPRequestHandler):
 
 
 def sorveglia():
-    """Chiude il server se la pagina non si fa più sentire (scheda chiusa)."""
+    """Chiude il server quando la scheda è stata chiusa o la pagina non si fa sentire da molto tempo."""
+    precedente = time.time()
     while True:
-        time.sleep(15)
-        if ultimo_contatto[0] and time.time() - ultimo_contatto[0] > ATTESA_CHIUSURA:
-            print("La pagina è stata chiusa: chiudo la schermata di controllo.", flush=True)
-            server.shutdown()
-            return
+        time.sleep(2)
+        adesso = time.time()
+        if adesso - precedente > 60 and ultimo_contatto[0]:  # il computer era in stop: si riparte da ora
+            ultimo_contatto[0] = adesso
+        precedente = adesso
+        chiusa, contatto = pagina_chiusa[0], ultimo_contatto[0] or 0
+        if chiusa and contatto <= chiusa and adesso - chiusa > ATTESA_DOPO_CHIUSURA:
+            print("La scheda del browser è stata chiusa: chiudo la schermata di controllo.", flush=True)
+        elif contatto and adesso - contatto > ATTESA_CHIUSURA:
+            print("La pagina non si fa sentire da molto tempo: chiudo la schermata di controllo.", flush=True)
+        else:
+            continue
+        server.shutdown()
+        return
 
 
 PAGINA = r"""<!doctype html>
@@ -350,7 +380,9 @@ function disegna() {
     const parte = voci.slice(pagina * perPagina, (pagina + 1) * perPagina);
     elenco.innerHTML = parte.map(v => {
       const a = attuale(v), bloccata = v.confermata;
-      const contesto = esc(v.contesto).replace(/\[([^\]]*)\]/, "<mark>$1</mark>");
+      const contesto = v.parola !== undefined
+        ? `…${esc(v.prima)} <mark>${esc(v.parola)}</mark> ${esc(v.dopo)}…`
+        : esc(v.contesto).replace(/\[([^\]]*)\]/, "<mark>$1</mark>");
       const url = `/clip/${encodeURIComponent(v.clip)}?t=${TOKEN}`;
       return `<section class="voce ${a.confermata ? "confermata" : ""} ${modifiche.has(v.numero) ? "modificata" : ""}" data-numero="${v.numero}">
         <div><div class="numero">${v.numero}</div><div class="tempo">${esc(v.tempo)}</div></div>
@@ -410,7 +442,7 @@ function disegnaPaginazione() {
 }
 
 $("#salva").addEventListener("click", async () => {
-  $("#salva").disabled = true; $("#annulla").disabled = true;
+  $("#salva").disabled = true; $("#annulla").disabled = true; $("#chiudi").disabled = true;
   stato("Salvataggio e aggiornamento in corso…");
   try {
     const elenco = [...modifiche].map(([numero, m]) => ({numero, ...m}));
@@ -422,6 +454,7 @@ $("#salva").addEventListener("click", async () => {
   } catch (e) {  // prima i conteggi, poi l'errore: altrimenti «Modifiche non salvate» lo coprirebbe
     aggiornaConteggi(); stato("Salvataggio non riuscito: " + e.message, "errore");
   }
+  $("#chiudi").disabled = false;
 });
 
 $("#annulla").addEventListener("click", async () => {
@@ -434,27 +467,56 @@ $("#apri-trascrizione").addEventListener("click", async () => {
   try { await chiama("/api/apri-trascrizione", {}); } catch (e) { stato(e.message, "errore"); }
 });
 
+// La pagina dice al programma che è aperta: poco dopo l'apertura (così, se è stata solo
+// ricaricata, il programma non si chiude) e poi ogni 20 secondi
+let pingFalliti = 0;
+const faiPing = () => chiama("/api/ping", {}).then(() => { pingFalliti = 0; }).catch(() => {
+  if (++pingFalliti === 2) stato("Collegamento con Trascrivi Audio interrotto: la schermata è stata chiusa. " +
+    "Per continuare riaprila da Trascrivi Audio (Apri un progetto › Analisi delle parole).", "errore");
+});
+setTimeout(faiPing, 3000);
+const ping = setInterval(faiPing, 20000);
+window.addEventListener("pageshow", e => { if (e.persisted) faiPing(); });  // pagina ripresa dalla cache
+
 $("#chiudi").addEventListener("click", async () => {
   if (modifiche.size && !confirm("Ci sono modifiche non salvate. Chiudere comunque?")) return;
+  clearInterval(ping);
   await chiama("/api/chiudi", {}).catch(() => {});
   modifiche.clear();
   document.body.innerHTML = '<main><div class="vuoto">Schermata chiusa. Puoi chiudere questa scheda.<br>' +
-    'Per riprendere il lavoro: doppio clic su «Controlla Parole» sulla Scrivania.</div></main>';
+    'Per riprendere il lavoro: apri Trascrivi Audio, scegli «Apri un progetto» e poi «Analisi delle parole».</div></main>';
 });
 
 window.addEventListener("beforeunload", e => { if (modifiche.size) { e.preventDefault(); e.returnValue = ""; } });
-setInterval(() => chiama("/api/ping", {}).catch(() => {}), 20000);
+// Scheda chiusa senza «Chiudi»: il programma torna al menu dopo pochi secondi
+window.addEventListener("pagehide", () => navigator.sendBeacon("/api/chiusa?t=" + encodeURIComponent(TOKEN)));
 chiama("/api/voci").then(d => carica(d, true)).catch(e => stato("Impossibile leggere il file: " + e.message, "errore"));
 </script>
 </body>
 </html>
 """
 
-server = ThreadingHTTPServer(("127.0.0.1", int(os.environ.get("PORTA", "0"))), Gestore)
+class Server(ThreadingHTTPServer):
+    daemon_threads = False  # alla chiusura si aspetta la fine dei salvataggi in corso
+
+    def handle_error(self, request, client_address):
+        if isinstance(sys.exc_info()[1], (ConnectionError, TimeoutError)):
+            return  # il browser ha interrotto la richiesta: nessun problema
+        super().handle_error(request, client_address)
+
+
+# All'apertura le correzioni già scritte nel file vengono applicate (es. un salvataggio
+# interrotto, o righe corrette a mano): trascrizione corretta e dizionario restano allineati
+try:
+    applica(file_controllo)
+except Exception as e:  # noqa: BLE001 — la schermata si apre lo stesso
+    print(f"Attenzione: correzioni non applicate ({e})", flush=True)
+
+server = Server(("127.0.0.1", int(os.environ.get("PORTA", "0"))), Gestore)
 url = f"http://127.0.0.1:{server.server_address[1]}/?t={TOKEN}"
 print(f"Schermata di controllo per: {os.path.basename(file_controllo)}", flush=True)
 print(f"Indirizzo (solo su questo computer): {url}", flush=True)
-print("Per chiudere: pulsante «Chiudi» nella pagina (o Ctrl+C qui).", flush=True)
+print("Per chiudere: pulsante «Chiudi» nella pagina.", flush=True)
 threading.Thread(target=sorveglia, daemon=True).start()
 if not os.environ.get("NON_APRIRE_BROWSER"):
     apri(url)
@@ -462,4 +524,5 @@ try:
     server.serve_forever()
 except KeyboardInterrupt:
     pass
+server.server_close()  # aspetta i salvataggi in corso
 print("Schermata di controllo chiusa.", flush=True)
